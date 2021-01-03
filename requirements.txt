@@ -1,0 +1,6 @@
+django
+djangorestframework
+pytest
+pytest-django
+django-cors-headers
+Pillow
