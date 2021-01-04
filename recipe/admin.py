@@ -10,7 +10,7 @@ class RecipeIngridientInline(admin.StackedInline):
 
 
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author', 'favorite_count')
+    list_display = ('title', 'author', 'favorite_count', 'image_tag')
     list_filter = ('author', 'title', 'tag',)
     inlines = (RecipeIngridientInline,)
     # fieldsets = (
