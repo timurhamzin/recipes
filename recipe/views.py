@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Model
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
 
 # Create your views here.
 from django.views.decorators.csrf import csrf_exempt
@@ -68,9 +69,11 @@ def single_page(request, recipe_id):
         favorite = follow_obj is not None
     else:
         template = 'singlePageNotAuth.html'
+
     recipe_ingredients = RecipeIngridient.objects.filter(
-        recipe=recipe_id,
-        ingridient__in=recipe.ingridients.all().values_list('id', flat=True))
+        recipe=recipe_id)
+        # recipe=recipe_id,
+        # ingridient__in=recipe.ingridients.all().values_list('id', flat=True))
     return render(
         request, template,
         {
@@ -85,8 +88,12 @@ def single_page(request, recipe_id):
 @login_required
 @csrf_exempt
 def favorites(request):
+    result = {'success': False}
     if request.method == 'POST':
         if request.body:
+            print('INSIDE')
+            print('INSIDE')
+            print('INSIDE')
             body = json.loads(request.body)
             recipe_id = body.get('id')
             follow_obj = None
@@ -97,9 +104,15 @@ def favorites(request):
                 serializer = FollowRecipeSerializer(data=follow_data)
                 if serializer.is_valid():
                     serializer.save()
+                    result = follow_data
             else:
                 follow_obj.delete()
-    return redirect(request.META['HTTP_REFERER'])
+                result = {'success': True}
+                print('RESULT')
+                print('RESULT')
+                print('RESULT')
+                print(result)
+    return JsonResponse(result)
 
 
 # class FollowRecipeViewSet(viewsets.ModelViewSet):
@@ -120,10 +133,6 @@ def favorites(request):
 #         follow_data = dict(user=user, recipe=recipe_id)
 #         follow_obj = get_object_or_None(FollowRecipe, **follow_data)
 #         serializer.save(**follow_data)
-#
-#
-#
-#
 #
 #
 #
