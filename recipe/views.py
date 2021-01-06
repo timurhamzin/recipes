@@ -3,6 +3,7 @@ from typing import Type
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Model
 from django.http import HttpResponseRedirect
@@ -10,6 +11,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 
 # Create your views here.
+from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -72,8 +75,8 @@ def single_page(request, recipe_id):
 
     recipe_ingredients = RecipeIngridient.objects.filter(
         recipe=recipe_id)
-        # recipe=recipe_id,
-        # ingridient__in=recipe.ingridients.all().values_list('id', flat=True))
+    # recipe=recipe_id,
+    # ingridient__in=recipe.ingridients.all().values_list('id', flat=True))
     return render(
         request, template,
         {
@@ -85,34 +88,60 @@ def single_page(request, recipe_id):
     )
 
 
-@login_required
-@csrf_exempt
-def favorites(request):
-    result = {'success': False}
-    if request.method == 'POST':
-        if request.body:
-            print('INSIDE')
-            print('INSIDE')
-            print('INSIDE')
-            body = json.loads(request.body)
-            recipe_id = body.get('id')
-            follow_obj = None
-            follow_data = dict(user=request.user.id, recipe=recipe_id)
-            if recipe_id is not None:
-                follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-            if follow_obj is None:
-                serializer = FollowRecipeSerializer(data=follow_data)
-                if serializer.is_valid():
-                    serializer.save()
-                    result = follow_data
-            else:
-                follow_obj.delete()
-                result = {'success': True}
-                print('RESULT')
-                print('RESULT')
-                print('RESULT')
-                print(result)
-    return JsonResponse(result)
+class FavoriteRecipe(View, LoginRequiredMixin):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request):
+        result = JsonResponse({'success': False})
+        request_body = json.loads(request.body)
+        recipe_id = request_body.get('id')
+        if recipe_id is not None:
+            recipe = get_object_or_404(Recipe, id=recipe_id)
+            follow_obj, created = FollowRecipe.objects.get_or_create(
+                recipe=recipe, user=request.user)
+            if created:
+                result = JsonResponse({'success': True})
+        else:
+            result = JsonResponse({'success': False}, 400)
+        return result
+
+    def delete(self, request, recipe_id):
+        follow_obj = get_object_or_404(
+            FollowRecipe, recipe=recipe_id, user=request.user)
+        follow_obj.delete()
+        return JsonResponse({'success': True})
+
+# @login_required
+# @csrf_exempt
+# def favorites(request):
+#     result = {'success': False}
+#     if request.method == 'POST':
+#         if request.body:
+#             print('INSIDE')
+#             print('INSIDE')
+#             print('INSIDE')
+#             body = json.loads(request.body)
+#             recipe_id = body.get('id')
+#             follow_obj = None
+#             follow_data = dict(user=request.user.id, recipe=recipe_id)
+#             if recipe_id is not None:
+#                 follow_obj = get_object_or_None(FollowRecipe, **follow_data)
+#             if follow_obj is None:
+#                 serializer = FollowRecipeSerializer(data=follow_data)
+#                 if serializer.is_valid():
+#                     serializer.save()
+#                     result = follow_data
+#             else:
+#                 follow_obj.delete()
+#                 result = {'success': False}
+#                 print('RESULT')
+#                 print('RESULT')
+#                 print('RESULT')
+#                 print(result)
+#     return JsonResponse(result)
 
 
 # class FollowRecipeViewSet(viewsets.ModelViewSet):
