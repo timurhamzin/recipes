@@ -1,15 +1,16 @@
 from rest_framework.serializers import ModelSerializer
 
-from recipe.models import FollowRecipe
+from recipe.models import Recipe
 
 
-class FollowRecipeSerializer(ModelSerializer):
+class RecipeSerializer(ModelSerializer):
     class Meta:
-        model = FollowRecipe
+        model = Recipe
         fields = (
             'user', 'recipe'
         )
         required_fields = fields
 
-    def create(self, validated_data):
-        return FollowRecipe.objects.create(**validated_data)
+    def update(self, **kwargs):
+        super().update(**kwargs)
+        return Recipe.objects.create(**validated_data)

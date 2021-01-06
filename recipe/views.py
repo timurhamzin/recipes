@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Model
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 
@@ -17,8 +17,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe
-from recipe.serializers import FollowRecipeSerializer
+from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
+    Ingridient
+from recipe.serializers import RecipeSerializer
 
 User = get_user_model()
 
@@ -114,61 +115,47 @@ class FavoriteRecipe(View, LoginRequiredMixin):
         follow_obj.delete()
         return JsonResponse({'success': True})
 
-# @login_required
-# @csrf_exempt
-# def favorites(request):
-#     result = {'success': False}
-#     if request.method == 'POST':
-#         if request.body:
-#             print('INSIDE')
-#             print('INSIDE')
-#             print('INSIDE')
-#             body = json.loads(request.body)
-#             recipe_id = body.get('id')
-#             follow_obj = None
-#             follow_data = dict(user=request.user.id, recipe=recipe_id)
-#             if recipe_id is not None:
-#                 follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-#             if follow_obj is None:
-#                 serializer = FollowRecipeSerializer(data=follow_data)
-#                 if serializer.is_valid():
-#                     serializer.save()
-#                     result = follow_data
-#             else:
-#                 follow_obj.delete()
-#                 result = {'success': False}
-#                 print('RESULT')
-#                 print('RESULT')
-#                 print('RESULT')
-#                 print(result)
-#     return JsonResponse(result)
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    serializer_class = RecipeSerializer
+    permission_classes = [IsAuthenticated]
+
+    # def get_queryset(self):
+    #     recipe_id = self.kwargs.get('id')
+    #     user = self.request.user
+    #     follow_data = dict(user=user, recipe=recipe_id)
+    #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
+    #     # review = get_object_or_404(FollowRecipe, pk=review_id, title__pk=title_id)
+    #     return follow_obj
+
+    # def perform_create(self, serializer):
+    #     recipe_id = self.kwargs.get('id')
+    #     user = self.request.user
+    #     follow_data = dict(user=user, recipe=recipe_id)
+    #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
+    #     serializer.save(**follow_data)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        pass
 
 
-# class FollowRecipeViewSet(viewsets.ModelViewSet):
-#     serializer_class = FollowRecipeSerializer
-#     permission_classes = [IsAuthenticated]
-#
-#     # def get_queryset(self):
-#     #     recipe_id = self.kwargs.get('id')
-#     #     user = self.request.user
-#     #     follow_data = dict(user=user, recipe=recipe_id)
-#     #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-#     #     # review = get_object_or_404(FollowRecipe, pk=review_id, title__pk=title_id)
-#     #     return follow_obj
-#
-#     def perform_create(self, serializer):
-#         recipe_id = self.kwargs.get('id')
-#         user = self.request.user
-#         follow_data = dict(user=user, recipe=recipe_id)
-#         follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-#         serializer.save(**follow_data)
-#
-#
-#
-#
-# class UserViewSet(viewsets.ModelViewSet):
-#     """
-#     A viewset for viewing and editing user instances.
-#     """
-#     serializer_class = UserSerializer
-#     queryset = User.objects.all()
+@login_required
+def edit_recipe(request, recipe_id):
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    all_tags = Tag.objects.all()
+    recipe_tags = recipe.tag.all()
+    ingredients = Ingridient.objects.all()
+    if recipe.author == request.user:
+        template = 'formChangeRecipe.html'
+        return render(
+            request, template,
+            {
+                'recipe': recipe,
+                'all_tags': all_tags,
+                'recipe_tags': recipe_tags,
+                'ingredients': ingredients,
+            },
+        )
+    else:
+        return HttpResponseForbidden()

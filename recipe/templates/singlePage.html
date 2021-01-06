@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     {% load static %}
-    {% load define %}
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
@@ -36,11 +35,6 @@
                 <div class="single-card__header-info">
                     <h1 class="single-card__title">{{ recipe }}</h1>
                     <div class="single-card__favorite">
-                        {% if favorite %}
-                           {% define "icon-favorite_active" as favorite_class %}
-                        {% else %}
-                           {% define "icon-favorite_big" as favorite_class %}
-                        {% endif %}
                         <button class="button button_style_none" name="favorites" data-out><span class="icon-favorite icon-favorite_big"></span></button>
                         <div class="single-card__favorite-tooltip tooltip">Добавить в избранное</div>
                     </div>
@@ -54,7 +48,7 @@
                     <p class="single-card__text"><span class="icon-time"></span> {{ recipe.cooking_time }} мин.</p>
                     <ul class="single-card__items">
                         <li class="single-card__item"><p class="single-card__text"><span class="icon-user"></span> {{ recipe.author }} </p></li>
-                        <li class="single-card__item">  <a style="margin-left: 2.5em" href="{% static '#' %}" class="single-card__text">Редактировать рецепт</a></li>
+                        <li class="single-card__item">  <a style="margin-left: 2.5em" href="edit/" class="single-card__text">Редактировать рецепт</a></li>
                     </ul>
                 </div>
                 <ul class="single-card__items">
