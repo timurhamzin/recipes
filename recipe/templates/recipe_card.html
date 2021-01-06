@@ -1,6 +1,8 @@
 {% load static %}
 <div class="card" data-id="120">
-    <a href="#" class="link" target="_blank"><img src="{{ recipe.image_url }}" alt="Какой-то текст" class="card__image"></a>
+    <a href="{% url 'single_page' recipe_id=recipe.id %}" class="link" target="_blank">
+        <img src="{{ recipe.image_url }}" alt="Какой-то текст" class="card__image">
+    </a>
     <div class="card__body">
         <a class="card__title link" href="#" target="_blank">{{ recipe }}</a>
         <ul class="card__items">

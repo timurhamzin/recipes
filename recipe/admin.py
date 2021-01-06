@@ -13,6 +13,11 @@ class RecipeAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'favorite_count', 'image_tag')
     list_filter = ('author', 'title', 'tag',)
     inlines = (RecipeIngridientInline,)
+    exclude = ('ingridients',)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     # fieldsets = (
     #     (None, {
     #         'fields': ('author', 'title', 'image', 'description',

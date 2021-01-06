@@ -18,7 +18,8 @@
                   <li class="nav__item"><a href="#" class="nav__link link">Мои подписки</a></li>
                   <li class="nav__item"><a href="#" class="nav__link link">Создать рецепт</a></li>
                   <li class="nav__item"><a href="#" class="nav__link link">Избранное</a></li>
-                  <li class="nav__item"><a href="#" class="nav__link link">Список покупок</a> <span class="badge badge_style_blue nav__badge" id="counter">4</span></li>
+                  <li class="nav__item"><a href="#" class="nav__link link">Список покупок</a>
+                      <span class="badge badge_style_blue nav__badge" id="counter">4</span></li>
 
               </ul>
               <ul class="nav__items list">
@@ -32,18 +33,15 @@
         <div class="main__header">
             <h1 class="main__title">Рецепты</h1>
             <ul class="tags">
-                <li class="tags__item">
-                    <a id="breakfast" class="tags__checkbox tags__checkbox_style_orange tags__checkbox_active" href="#"></a>
-                    <span class="tags__label">Завтрак</span>
-                </li>
-                <li class="tags__item">
-                    <a id="lunch" class="tags__checkbox tags__checkbox_style_green tags__checkbox_active" href="#"></a>
-                    <span for="lunch" class="tags__label">Обед</span>
-                </li>
-                <li class="tags__item">
-                    <a id="dinner" class="tags__checkbox tags__checkbox_style_purple tags__checkbox_active" href="#"></a>
-                    <label for="dinner" class="tags__label">Ужин</label>
-                </li>
+                {% for tag in all_tags %}
+                    <li class="tags__item">
+                        {% get_tag tag.name request.GET.urlencode as tagged %}
+                        <a id="{{ tag.name }}" class="tags__checkbox tags__checkbox_style_{{ tag.badge_color }}
+                        {% if tagged == 1 %} tags__checkbox_active {% endif %}"
+                           href="{{ request.path }}?{% change_tag tag.name request.GET.urlencode %}"></a>
+                        <label class="tags__label">{{ tag.name }}</label>
+                    </li>
+                {% endfor %}
             </ul>
         </div>
         <div class="card-list">
@@ -52,72 +50,55 @@
             {% endfor %}
         </div>
 
-
         <nav class="pagination" aria-label="Search results pages">
             <ul class="pagination__container">
-                {% if page.has_previous %}
+                {% if page.number|add:'-2' > 0 %}
                     <li class="pagination__item">
-                        <a class="pagination__link link" href="?page={{ page.paginator.num_pages }}">
-                            <span class="icon-left"></span><span class="icon-left"></span>
-                        </a>
-                    </li>
-                    <li class="pagination__item">
-                        <a class="pagination__link link" href="?page={{ page.previous_page_number }}">
-                            <span class="icon-left"></span>
+                        <a class="pagination__link link"
+                           href="{{ request.path }}?{% set_page 1 request.GET.urlencode %}">1
                         </a>
                     </li>
                 {% endif %}
-                <li class="pagination__item pagination__item_active"><a class="pagination__link link" href="#">1</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">2</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">3</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">4</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">5</a></li>
-                {% if page.has_next %}
+                {% if page.number|add:'-3' > 0 %}
                     <li class="pagination__item">
-                        <a class="pagination__link link" href="?page={{ page.next_page_number }}">
-                            <span class="icon-right"></span>
+                        <a class="pagination__link link"
+                           href="{{ request.path }}?{% set_page page.number request.GET.urlencode -2 %}">...
                         </a>
                     </li>
+                {% endif %}
+
+                {% for i in page.paginator.page_range %}
+                    {% if page.number == i %}
+                        <li class="pagination__item pagination__item_active">
+                            <a class="pagination__link link" href="#">{{ i }}</a>
+                        </li>
+                    {% elif i > page.number|add:'-2' and i < page.number|add:'2' %}
+                        <li class="pagination__item">
+                            <a class="pagination__link link"
+                               href="{{ request.path }}?{% set_page i request.GET.urlencode %}">{{ i }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page.paginator.num_pages > page.number|add:'2' %}
                     <li class="pagination__item">
-                        <a class="pagination__link link" href="?page={{ page.paginator.num_pages }}">
-                            <span class="icon-right"></span><span class="icon-right"></span>
+                        <a class="pagination__link link"
+                           href="{{ request.path }}?{% set_page page.number request.GET.urlencode 2 %}">...
+                        </a>
+                    </li>
+                {% endif %}
+                {% if page.paginator.num_pages > page.number|add:'1' %}
+                    <li class="pagination__item">
+                        <a class="pagination__link link"
+                           href="{{ request.path }}?{% set_page page.paginator.num_pages request.GET.urlencode %}">
+                            {{ page.paginator.num_pages }}
                         </a>
                     </li>
                 {% endif %}
             </ul>
         </nav>
 
-
-        <div class="pagination">
-            <span class="step-links">
-                {% if page.has_previous %}
-                    <a href="?page=1">&laquo; first</a>
-                    <a href="?page={{ page.previous_page_number }}">previous</a>
-                {% endif %}
-
-                <span class="current">
-                    Page {{ page.number }} of {{ page.paginator.num_pages }}.
-                </span>
-
-                {% if page.has_next %}
-                    <a href="?page={{ page.next_page_number }}">next</a>
-                    <a href="?page={{ page.paginator.num_pages }}">last &raquo;</a>
-                {% endif %}
-            </span>
-        </div>
-
-
-        <nav class="pagination" aria-label="Search results pages">
-            <ul class="pagination__container">
-                <li class="pagination__item"><a class="pagination__link link" href="#"><span class="icon-left"></span></a></li>
-                <li class="pagination__item pagination__item_active"><a class="pagination__link link" href="#">1</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">2</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">3</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">4</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#">5</a></li>
-                <li class="pagination__item"><a class="pagination__link link" href="#"><span class="icon-right"></span></a></li>
-            </ul>
-        </nav>
     </main>
     <footer class="footer">
         <div class="footer__container container">

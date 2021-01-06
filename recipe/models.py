@@ -20,11 +20,12 @@ class Recipe(models.Model):
         blank=True,
         null=True)
     description = models.TextField()
-    ingridients = models.ManyToManyField('Ingridient')
+    ingridients = models.ManyToManyField('Ingridient',
+                                         through='RecipeIngridient', related_name='recipes')
     tag = models.ManyToManyField('Tag')
     cooking_time = models.IntegerField()
     pub_date = models.DateTimeField('date published', auto_now_add=True)
-    cart = models.ManyToManyField('ShoppingCart', related_name='recipes',
+    cart = models.ManyToManyField('ShoppingCart',
                                   blank=True)
     favorite_count = models.PositiveIntegerField(default=0)
 
@@ -41,6 +42,9 @@ class Recipe(models.Model):
     def image_url(self):
         if self.image and hasattr(self.image, 'url'):
             return self.image.url
+
+    class Meta:
+        ordering = ('-pub_date',)
 
 
 class Ingridient(models.Model):

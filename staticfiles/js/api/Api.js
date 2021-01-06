@@ -79,7 +79,7 @@ class Api {
       })
   }
   addFavorites (id)  {
-    return fetch(`/favorites`, {
+    return fetch(`/favorites/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -90,6 +90,9 @@ class Api {
     })
         .then( e => {
             if(e.ok) {
+                // window.location.reload(true)
+                console.log('e ok')
+                console.log(e.json())
                 return e.json()
             }
             return Promise.reject(e.statusText)

@@ -1,5 +1,5 @@
 .single-card__image {
-    object-fit: cover;
+    object-fit: scale-down;
     align-self: flex-start;
     height: 480px;
     width: 480px;
