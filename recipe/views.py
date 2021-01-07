@@ -143,19 +143,30 @@ class RecipeViewSet(viewsets.ModelViewSet):
 @login_required
 def edit_recipe(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    all_tags = Tag.objects.all()
-    recipe_tags = recipe.tag.all()
-    ingredients = Ingridient.objects.all()
-    if recipe.author == request.user:
-        template = 'formChangeRecipe.html'
-        return render(
-            request, template,
-            {
-                'recipe': recipe,
-                'all_tags': all_tags,
-                'recipe_tags': recipe_tags,
-                'ingredients': ingredients,
-            },
-        )
-    else:
-        return HttpResponseForbidden()
+    if request.method == 'GET':
+        all_tags = Tag.objects.all()
+        recipe_tags = recipe.tag.all()
+        ingredients = Ingridient.objects.all()
+        recipe_ingredients = RecipeIngridient.objects.filter(
+            recipe=recipe_id)
+        if recipe.author == request.user:
+            template = 'formChangeRecipe.html'
+            return render(
+                request, template,
+                {
+                    'recipe': recipe,
+                    'all_tags': all_tags,
+                    'recipe_tags': recipe_tags,
+                    'ingredients': ingredients,
+                    'recipe_ingredients': recipe_ingredients,
+                },
+            )
+        else:
+            return HttpResponseForbidden()
+    elif request.method == 'POST':
+        form = RecipeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            obj = form.save()
+            return HttpResponse('ok')
+        return HttpResponse('errors')
+
