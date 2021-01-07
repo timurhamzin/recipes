@@ -9,6 +9,7 @@ User = get_user_model()
 
 
 class Recipe(models.Model):
+    id = models.AutoField(primary_key=True)
     image_upload_to = 'recipe_images'
     author = models.ForeignKey(
         User,
@@ -22,7 +23,7 @@ class Recipe(models.Model):
     description = models.TextField()
     ingridients = models.ManyToManyField('Ingridient',
                                          through='RecipeIngridient', related_name='recipes')
-    tag = models.ManyToManyField('Tag')
+    tag = models.ManyToManyField('Tag', blank=False)
     cooking_time = models.IntegerField()
     pub_date = models.DateTimeField('date published', auto_now_add=True)
     cart = models.ManyToManyField('ShoppingCart',

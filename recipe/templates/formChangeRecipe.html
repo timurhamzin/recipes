@@ -65,6 +65,8 @@
                 <div class="form__field-group">
                     <div class="form__field-group-ingredientes">
                         <div class="form__dropdown">
+<!--                            <input type="text" id="nameIngredient" class="form__input">-->
+<!--                            <div class="form__dropdown-items"></div>-->
                             <select id="nameIngredient" class="form__input">
                                 {% for ingredient in ingredients %}
                                     <option value="{{ ingredient }}">{{ ingredient }}</option>
@@ -86,11 +88,12 @@
                                 </span>
                                 <span class="form__field-item-delete"></span>
                                 <input id="nameIngredient_{{ forloop.counter }}"
-                                       name="nameIngredient_{{ forloop.counter }}" type="hidden" value="{{ ingredient }}">
-                                <input id="valueIngredient_{{ forloop.counter }}" name="valueIngredient_3" type="hidden"
+                                       name="nameIngredient_{{ forloop.counter }}" type="hidden"
+                                       value="{{ recipe_ingredient.ingridient.title }}">
+                                <input id="valueIngredient_{{ forloop.counter }}" name="valueIngredient_{{ forloop.counter }}" type="hidden"
                                        value="{{ recipe_ingredient.amount }}">
-                                <input id="unitsIngredient_{{ forloop.counter }}" name="unitsIngredient_3" type="hidden"
-                                       value="{{ recipe_ingredient.ingredient.measurement_unit }}">
+                                <input id="unitsIngredient_{{ forloop.counter }}" name="unitsIngredient_{{ forloop.counter }}" type="hidden"
+                                       value="{{ recipe_ingredient.ingridient.measurement_unit }}">
                             </div>
                         {% endfor %}
                     </div>
@@ -101,7 +104,7 @@
             <div class="form__group">
                 <label for="id_time" class="form__label">Время приготовления</label>
                 <div class="form__field-group form__field-group_time">
-                    <input type="text" id="id_time" name="name" class="form__input" value="{{ recipe.cooking_time }}">
+                    <input type="text" id="id_time" name="cooking_time" class="form__input" value="{{ recipe.cooking_time }}">
                     <label for="id_time" class="form__label">минут</label>
                     <span class="form__error"></span>
                 </div>

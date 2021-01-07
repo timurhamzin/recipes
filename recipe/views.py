@@ -1,12 +1,14 @@
 import json
 from typing import Type
+from urllib.response import addbase
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
-from django.db.models import Model
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.db.models import Model, Q
+from django.forms import modelform_factory
+from django.http import HttpResponseRedirect, HttpResponseForbidden, QueryDict
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 
@@ -17,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
     Ingridient
 from recipe.serializers import RecipeSerializer
@@ -40,7 +43,8 @@ def index(request):
     all_tags = Tag.objects.all()
     selected_tags = [t.name for t in all_tags if \
                      get_dict.get(t.name, str(DEFAULT_TAG_VALUE)) == '1']
-    recipes = Recipe.objects.filter(tag__name__in=selected_tags).distinct()
+    recipes = Recipe.objects.filter(
+        Q(tag__name__in=selected_tags) | Q(tag=None)).distinct()
 
     paginator = Paginator(recipes, CARDS_PER_PAGE)
     page_number = request.GET.get('page', 1)
@@ -140,33 +144,93 @@ class RecipeViewSet(viewsets.ModelViewSet):
         pass
 
 
+def get_recipe_data(request):
+    raw_data = request.POST.dict()
+    result = {'image': raw_data['file'], 'description': raw_data['discription'],
+              'title': raw_data['name'],
+              'cooking_time': raw_data['cooking_time']}
+    return result
+
+
+def create_recipe_tags(recipe, request):
+    raw_data = request.POST.dict()
+    all_tags = Tag.objects.all()
+    tags_to_set = [k for k in raw_data.keys() if k in all_tags]
+    present_tags = recipe.tag.all()
+    present_tags_set = set(present_tags)
+    tags_to_set_set = set(tags_to_set)
+    if present_tags_set != tags_to_set_set:
+        remove_tags = present_tags_set - tags_to_set_set
+        add_tags = tags_to_set_set - present_tags_set
+        recipe.tag.remove(*remove_tags)
+        recipe.tag.add(*add_tags)
+    recipe.save()
+
+
+def create_recipe_ingredients(recipe, request):
+    raw_data = request.POST.dict()
+    RecipeIngridient.objects.filter(recipe__id=recipe.id).delete()
+    ingredient_titles = [raw_data[k] for k in raw_data.keys()
+                        if k.startswith('nameIngredient')]
+    amounts = [raw_data[k] for k in raw_data.keys()
+               if k.startswith('valueIngredient')]
+    for ingredient_title, amount in zip(ingredient_titles, amounts):
+        ingredient = get_object_or_404(Ingridient, title=ingredient_title)
+        RecipeIngridient.objects.create(recipe=recipe, ingridient=ingredient,
+                                        amount=amount)
+
+
 @login_required
 def edit_recipe(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
+    if recipe.author != request.user:
+        return HttpResponseForbidden()
     if request.method == 'GET':
         all_tags = Tag.objects.all()
         recipe_tags = recipe.tag.all()
         ingredients = Ingridient.objects.all()
         recipe_ingredients = RecipeIngridient.objects.filter(
             recipe=recipe_id)
-        if recipe.author == request.user:
-            template = 'formChangeRecipe.html'
-            return render(
-                request, template,
-                {
-                    'recipe': recipe,
-                    'all_tags': all_tags,
-                    'recipe_tags': recipe_tags,
-                    'ingredients': ingredients,
-                    'recipe_ingredients': recipe_ingredients,
-                },
-            )
-        else:
-            return HttpResponseForbidden()
+        template = 'formChangeRecipe.html'
+        return render(
+            request, template,
+            {
+                'recipe': recipe,
+                'all_tags': all_tags,
+                'recipe_tags': recipe_tags,
+                'ingredients': ingredients,
+                'recipe_ingredients': recipe_ingredients,
+            },
+        )
     elif request.method == 'POST':
-        form = RecipeForm(user=request.user, data=request.POST)
+        data = get_recipe_data(request)
+        Form = modelform_factory(
+            Recipe, form=RecipeForm, fields=(data.keys())
+        )
+        form = Form(data, instance=recipe)
         if form.is_valid():
-            obj = form.save()
-            return HttpResponse('ok')
-        return HttpResponse('errors')
+            form.save()
+            create_recipe_tags(recipe, request)
+            create_recipe_ingredients(recipe, request)
+            return JsonResponse({'success': True})
+        else:
+            print(form.errors)
+        return JsonResponse({'success': False}, 422)
 
+
+# TODO
+# remove url for this view, it's for testing purposes only
+@login_required
+def edit_model_form(request, recipe_id):
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if request.method == 'POST':
+        form = RecipeForm(request.POST, instance=recipe)
+        if form.is_valid():
+            obj = form.save(
+                commit=False)  # does nothing, just trigger the validation
+            print(obj)
+            for ingredient in obj.ingridients.all():
+                ingredient.amount = 1
+    else:
+        form = RecipeForm(instance=recipe)
+    return render(request, 'recipeEditModelForm.html', {'form': form})
