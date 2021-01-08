@@ -22,7 +22,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
-    Ingridient
+    Ingridient, ShoppingCart
 from recipe.serializers import RecipeSerializer
 
 User = get_user_model()
@@ -70,12 +70,8 @@ def index(request):
 def single_page(request, recipe_id):
     user = request.user
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    favorite = False
     if user.is_authenticated:
         template = 'singlePage.html'
-        follow_data = dict(user=user.id, recipe=recipe_id)
-        follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-        favorite = follow_obj is not None
     else:
         template = 'singlePageNotAuth.html'
 
@@ -87,13 +83,16 @@ def single_page(request, recipe_id):
             'recipe': recipe,
             'tags': recipe.tag.all(),
             'recipe_ingredients': recipe_ingredients,
-            'favorite': favorite
+            'favorite': FavoriteRecipe.is_favorite(recipe, request.user),
+            'in_cart': Purchase.is_purchased(recipe, request.user)
         },
     )
 
 
 class FavoriteRecipe(View, LoginRequiredMixin):
 
+    #TODO
+    # Add csrf support
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
@@ -117,6 +116,46 @@ class FavoriteRecipe(View, LoginRequiredMixin):
             FollowRecipe, recipe=recipe_id, user=request.user)
         follow_obj.delete()
         return JsonResponse({'success': True})
+
+    @staticmethod
+    def is_favorite(recipe, user):
+        found = get_object_or_None(FollowRecipe, user=user.id, recipe=recipe)
+        return found is not None
+
+
+# TODO
+# refactor into one class with FavoriteRecipe
+class Purchase(View, LoginRequiredMixin):
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request):
+        result = JsonResponse({'success': False})
+        request_body = json.loads(request.body)
+        recipe_id = request_body.get('id')
+        if recipe_id is not None:
+            recipe = get_object_or_404(Recipe, id=recipe_id)
+            cart_obj, created = ShoppingCart.objects.get_or_create(
+                recipe=recipe, user=request.user)
+            if created:
+                result = JsonResponse({'success': True})
+        else:
+            result = JsonResponse({'success': False}, 400)
+        return result
+
+    def delete(self, request, recipe_id):
+        cart_obj = get_object_or_None(ShoppingCart, recipe__id=recipe_id,
+                                      user=request.user)
+        if cart_obj is not None:
+            cart_obj.delete()
+        return JsonResponse({'success': True})
+
+    @staticmethod
+    def is_purchased(recipe, user):
+        item = get_object_or_None(ShoppingCart, user=user, recipe=recipe)
+        return item is not None
 
 
 @login_required

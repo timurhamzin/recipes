@@ -21,13 +21,14 @@ class Recipe(models.Model):
         blank=True,
         null=True)
     description = models.TextField()
-    ingridients = models.ManyToManyField('Ingridient',
-                                         through='RecipeIngridient', related_name='recipes')
+    ingridients = models.ManyToManyField(
+        'Ingridient', through='RecipeIngridient', related_name='recipes')
     tag = models.ManyToManyField('Tag', blank=False)
     cooking_time = models.IntegerField()
     pub_date = models.DateTimeField('date published', auto_now_add=True)
-    cart = models.ManyToManyField('ShoppingCart',
-                                  blank=True)
+    purchased_by = models.ManyToManyField(
+        User, blank=True, related_name='purchased_recipes',
+        through='ShoppingCart')
     favorite_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
@@ -124,4 +125,11 @@ class FollowUser(models.Model):
 
 
 class ShoppingCart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_carts')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_carts')
