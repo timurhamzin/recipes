@@ -34,7 +34,7 @@
         <h1 class="main__title">Редактирование рецепта</h1>
     </div>
     <div class="form-container">
-        <form class="form" method="POST">
+        <form class="form" method="POST" enctype="multipart/form-data">
              {% csrf_token %}
             <div class="form__group">
                 <label for="id_name" class="form__label">Название рецепта</label>
@@ -65,8 +65,6 @@
                 <div class="form__field-group">
                     <div class="form__field-group-ingredientes">
                         <div class="form__dropdown">
-<!--                            <input type="text" id="nameIngredient" class="form__input">-->
-<!--                            <div class="form__dropdown-items"></div>-->
                             <select id="nameIngredient" class="form__input">
                                 {% for ingredient in ingredients %}
                                     <option value="{{ ingredient }}">{{ ingredient }}</option>
@@ -126,7 +124,8 @@
                 </div>
             </div>
             <div class="form__footer">
-                <button class="button button_style_blue">Сохранить</button> <a style="margin-left: 2.5em" href="{% static '#' %}" class="form__ingredient-link">Удалить</a>
+                <button class="button button_style_blue">Сохранить</button>
+                <a style="margin-left: 2.5em" href="/{{ recipe.id }}/delete/" class="form__ingredient-link">Удалить</a>
             </div>
         </form>
     </div>

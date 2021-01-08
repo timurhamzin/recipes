@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Model, Q
-from django.forms import modelform_factory
+from django.forms import modelform_factory, ModelForm
 from django.http import HttpResponseRedirect, HttpResponseForbidden, QueryDict
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
@@ -80,8 +81,6 @@ def single_page(request, recipe_id):
 
     recipe_ingredients = RecipeIngridient.objects.filter(
         recipe=recipe_id)
-    # recipe=recipe_id,
-    # ingridient__in=recipe.ingridients.all().values_list('id', flat=True))
     return render(
         request, template,
         {
@@ -120,102 +119,110 @@ class FavoriteRecipe(View, LoginRequiredMixin):
         return JsonResponse({'success': True})
 
 
-class RecipeViewSet(viewsets.ModelViewSet):
-    serializer_class = RecipeSerializer
-    permission_classes = [IsAuthenticated]
-
-    # def get_queryset(self):
-    #     recipe_id = self.kwargs.get('id')
-    #     user = self.request.user
-    #     follow_data = dict(user=user, recipe=recipe_id)
-    #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-    #     # review = get_object_or_404(FollowRecipe, pk=review_id, title__pk=title_id)
-    #     return follow_obj
-
-    # def perform_create(self, serializer):
-    #     recipe_id = self.kwargs.get('id')
-    #     user = self.request.user
-    #     follow_data = dict(user=user, recipe=recipe_id)
-    #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-    #     serializer.save(**follow_data)
-
-    def perform_update(self, serializer):
-        super().perform_update(serializer)
-        pass
-
-
-def get_recipe_data(request):
-    raw_data = request.POST.dict()
-    result = {'image': raw_data['file'], 'description': raw_data['discription'],
-              'title': raw_data['name'],
-              'cooking_time': raw_data['cooking_time']}
-    return result
-
-
-def create_recipe_tags(recipe, request):
-    raw_data = request.POST.dict()
-    all_tags = Tag.objects.all()
-    tags_to_set = [k for k in raw_data.keys() if k in all_tags]
-    present_tags = recipe.tag.all()
-    present_tags_set = set(present_tags)
-    tags_to_set_set = set(tags_to_set)
-    if present_tags_set != tags_to_set_set:
-        remove_tags = present_tags_set - tags_to_set_set
-        add_tags = tags_to_set_set - present_tags_set
-        recipe.tag.remove(*remove_tags)
-        recipe.tag.add(*add_tags)
-    recipe.save()
-
-
-def create_recipe_ingredients(recipe, request):
-    raw_data = request.POST.dict()
-    RecipeIngridient.objects.filter(recipe__id=recipe.id).delete()
-    ingredient_titles = [raw_data[k] for k in raw_data.keys()
-                        if k.startswith('nameIngredient')]
-    amounts = [raw_data[k] for k in raw_data.keys()
-               if k.startswith('valueIngredient')]
-    for ingredient_title, amount in zip(ingredient_titles, amounts):
-        ingredient = get_object_or_404(Ingridient, title=ingredient_title)
-        RecipeIngridient.objects.create(recipe=recipe, ingridient=ingredient,
-                                        amount=amount)
-
-
 @login_required
 def edit_recipe(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
+    editor = RecipeEditor(recipe, request)
     if recipe.author != request.user:
         return HttpResponseForbidden()
     if request.method == 'GET':
+        return editor.render_get()
+    elif request.method == 'POST':
+        form = editor.validate_recipe_with_form()
+        if form:
+            form.save()
+            editor.update_recipe_image()
+            editor.create_recipe_tags()
+            editor.create_recipe_ingredients()
+        return redirect(request.path_info)
+
+
+@login_required
+def delete_recipe(request, recipe_id):
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if recipe.author != request.user:
+        return HttpResponseForbidden()
+    recipe.delete()
+    return redirect('/')
+
+
+class RecipeEditor(object):
+
+    def __init__(self, recipe, request):
+        self._recipe = recipe
+        self._request = request
+
+    def render_get(self):
         all_tags = Tag.objects.all()
-        recipe_tags = recipe.tag.all()
+        recipe_tags = self._recipe.tag.all()
         ingredients = Ingridient.objects.all()
         recipe_ingredients = RecipeIngridient.objects.filter(
-            recipe=recipe_id)
+            recipe=self._recipe.id)
         template = 'formChangeRecipe.html'
         return render(
-            request, template,
+            self._request, template,
             {
-                'recipe': recipe,
+                'recipe': self._recipe,
                 'all_tags': all_tags,
                 'recipe_tags': recipe_tags,
                 'ingredients': ingredients,
                 'recipe_ingredients': recipe_ingredients,
             },
         )
-    elif request.method == 'POST':
-        data = get_recipe_data(request)
-        Form = modelform_factory(
-            Recipe, form=RecipeForm, fields=(data.keys())
-        )
-        form = Form(data, instance=recipe)
+
+    def update_recipe_image(self):
+        if 'file' in self._request.FILES.keys():
+            image = self._request.FILES['file']
+            self._recipe.image.save(
+                default_storage.get_available_name(image.name), image)
+
+    def validate_recipe_with_form(self) -> ModelForm:
+        data = self.get_recipe_data()
+        Form = modelform_factory(Recipe, form=RecipeForm, fields=data.keys())
+        form = Form(data, instance=self._recipe)
         if form.is_valid():
-            form.save()
-            create_recipe_tags(recipe, request)
-            create_recipe_ingredients(recipe, request)
-            return JsonResponse({'success': True})
-        else:
-            print(form.errors)
-        return JsonResponse({'success': False}, 422)
+            return form
+
+    def get_recipe_data(self):
+        raw_data = self._request.POST.dict()
+        result = {'description': raw_data['discription'],
+                  'title': raw_data['name'],
+                  'cooking_time': raw_data['cooking_time']}
+        return result
+
+    def create_recipe_tags(self):
+        raw_data = self._request.POST.dict()
+        all_tags = Tag.objects.all()
+        tags_to_set = [k for k in raw_data.keys()
+                       if k in list(all_tags.values_list('name', flat=True))]
+        present_tags = self._recipe.tag.all()
+        present_tags_set = set(present_tags.values_list('name', flat=True))
+        tags_to_set_set = set(tags_to_set)
+        if present_tags_set != tags_to_set_set:
+            remove_tags = present_tags_set - tags_to_set_set
+            add_tags = tags_to_set_set - present_tags_set
+            if remove_tags:
+                self._recipe.tag.remove(*list(
+                    all_tags.filter(
+                        name__in=remove_tags).values_list('id', flat=True)))
+            if add_tags:
+                self._recipe.tag.add(
+                    *all_tags.filter(
+                        name__in=add_tags).values_list('id', flat=True))
+        self._recipe.save()
+
+    def create_recipe_ingredients(self):
+        raw_data = self._request.POST.dict()
+        RecipeIngridient.objects.filter(recipe__id=self._recipe.id).delete()
+        ingredient_titles = [raw_data[k] for k in raw_data.keys()
+                             if k.startswith('nameIngredient')]
+        amounts = [raw_data[k] for k in raw_data.keys()
+                   if k.startswith('valueIngredient')]
+        for ingredient_title, amount in zip(ingredient_titles, amounts):
+            ingredient = get_object_or_404(Ingridient, title=ingredient_title)
+            RecipeIngridient.objects.create(recipe=self._recipe,
+                                            ingridient=ingredient,
+                                            amount=amount)
 
 
 # TODO
@@ -234,3 +241,28 @@ def edit_model_form(request, recipe_id):
     else:
         form = RecipeForm(instance=recipe)
     return render(request, 'recipeEditModelForm.html', {'form': form})
+
+# class RecipeViewSet(viewsets.ModelViewSet):
+#     serializer_class = RecipeSerializer
+#     permission_classes = [IsAuthenticated]
+#
+#     # def get_queryset(self):
+#     #     recipe_id = self.kwargs.get('id')
+#     #     user = self.request.user
+#     #     follow_data = dict(user=user, recipe=recipe_id)
+#     #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
+#     #     # review = get_object_or_404(FollowRecipe, pk=review_id, title__pk=title_id)
+#     #     return follow_obj
+#
+#     # def perform_create(self, serializer):
+#     #     recipe_id = self.kwargs.get('id')
+#     #     user = self.request.user
+#     #     follow_data = dict(user=user, recipe=recipe_id)
+#     #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
+#     #     serializer.save(**follow_data)
+#
+#     def perform_update(self, serializer):
+#         super().perform_update(serializer)
+#         pass
+#
+#
