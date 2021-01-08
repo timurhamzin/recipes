@@ -83,16 +83,20 @@ def single_page(request, recipe_id):
             'recipe': recipe,
             'tags': recipe.tag.all(),
             'recipe_ingredients': recipe_ingredients,
-            'favorite': FavoriteRecipe.is_favorite(recipe, request.user),
+            'favorite': FavoriteRecipe().is_followed(recipe, request.user),
             'in_cart': Purchase.is_purchased(recipe, request.user)
         },
     )
 
 
-class FavoriteRecipe(View, LoginRequiredMixin):
+class FollowThrough(View, LoginRequiredMixin):
 
-    #TODO
-    # Add csrf support
+    def __init__(self, followed_class, followed_through_name, through_class):
+        super().__init__()
+        self._followed_through_name = followed_through_name
+        self._followed_class = followed_class
+        self._through_class = through_class
+
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
@@ -100,27 +104,71 @@ class FavoriteRecipe(View, LoginRequiredMixin):
     def post(self, request):
         result = JsonResponse({'success': False})
         request_body = json.loads(request.body)
-        recipe_id = request_body.get('id')
-        if recipe_id is not None:
-            recipe = get_object_or_404(Recipe, id=recipe_id)
-            follow_obj, created = FollowRecipe.objects.get_or_create(
-                recipe=recipe, user=request.user)
+        followed_id = request_body.get('id')
+        if followed_id is not None:
+            followed = get_object_or_404(self._followed_class, id=followed_id)
+            filter_kwargs = {self._followed_through_name: followed}
+            follow_obj, created = self._through_class.objects.get_or_create(
+                user=request.user, **filter_kwargs)
             if created:
                 result = JsonResponse({'success': True})
         else:
             result = JsonResponse({'success': False}, 400)
         return result
 
-    def delete(self, request, recipe_id):
-        follow_obj = get_object_or_404(
-            FollowRecipe, recipe=recipe_id, user=request.user)
-        follow_obj.delete()
+    def delete(self, request, followed_id):
+        filter_kwargs = {self._followed_through_name: followed_id}
+        through_obj = get_object_or_404(
+            self._through_class, user=request.user, **filter_kwargs)
+        through_obj.delete()
         return JsonResponse({'success': True})
 
-    @staticmethod
-    def is_favorite(recipe, user):
-        found = get_object_or_None(FollowRecipe, user=user.id, recipe=recipe)
+    def is_followed(self, followed, user):
+        filter_kwargs = {self._followed_through_name: followed}
+        found = get_object_or_None(self._through_class,
+                                   user=user, **filter_kwargs)
         return found is not None
+
+
+class FavoriteRecipe(FollowThrough):
+
+    def __init__(self):
+        super().__init__(followed_class=Recipe, through_class=FollowRecipe,
+                         followed_through_name='recipe')
+
+
+# class FavoriteRecipe(View, LoginRequiredMixin):
+#
+#     #TODO
+#     # Add csrf support
+#     @method_decorator(csrf_exempt)
+#     def dispatch(self, request, *args, **kwargs):
+#         return super().dispatch(request, *args, **kwargs)
+#
+#     def post(self, request):
+#         result = JsonResponse({'success': False})
+#         request_body = json.loads(request.body)
+#         recipe_id = request_body.get('id')
+#         if recipe_id is not None:
+#             recipe = get_object_or_404(Recipe, id=recipe_id)
+#             follow_obj, created = FollowRecipe.objects.get_or_create(
+#                 recipe=recipe, user=request.user)
+#             if created:
+#                 result = JsonResponse({'success': True})
+#         else:
+#             result = JsonResponse({'success': False}, 400)
+#         return result
+#
+#     def delete(self, request, recipe_id):
+#         follow_obj = get_object_or_404(
+#             FollowRecipe, recipe=recipe_id, user=request.user)
+#         follow_obj.delete()
+#         return JsonResponse({'success': True})
+#
+#     @staticmethod
+#     def is_favorite(recipe, user):
+#         found = get_object_or_None(FollowRecipe, user=user.id, recipe=recipe)
+#         return found is not None
 
 
 # TODO
