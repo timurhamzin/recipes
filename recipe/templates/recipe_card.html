@@ -16,6 +16,19 @@
         </div>
     </div>
     <div class="card__footer">
-        <button class="button button_style_light-blue" name="purchases" data-out><span class="icon-plus button__icon"></span>Добавить в покупки</button>
+        {% if in_cart %}
+            {% define "button_style_light-blue-outline" as to_cart_button_class %}
+            {% define "icon-check" as to_cart_text_class %}
+            {% define "" as to_cart_data_out %}
+            {% define " Рецепт добавлен" as to_cart_text %}
+        {% else %}
+            {% define "button_style_blue" as to_cart_button_class %}
+            {% define "icon-plus" as to_cart_text_class %}
+            {% define "data-out" as to_cart_data_out %}
+            {% define "Добавить в покупки" as to_cart_text %}
+        {% endif %}
+        <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
+            <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
+<!--        <button class="button button_style_light-blue" name="purchases" data-out><span class="icon-plus button__icon"></span>Добавить в покупки</button>-->
     </div>
 </div>

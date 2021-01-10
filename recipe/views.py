@@ -22,7 +22,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
-    Ingridient, ShoppingCart
+    Ingridient, ShoppingCart, FollowUser
 from recipe.serializers import RecipeSerializer
 
 User = get_user_model()
@@ -67,35 +67,35 @@ def index(request):
     )
 
 
-def single_page(request, recipe_id):
+def single_page(request, followed_id):
     user = request.user
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = get_object_or_404(Recipe, id=followed_id)
     if user.is_authenticated:
         template = 'singlePage.html'
     else:
         template = 'singlePageNotAuth.html'
 
     recipe_ingredients = RecipeIngridient.objects.filter(
-        recipe=recipe_id)
+        recipe=followed_id)
     return render(
         request, template,
         {
             'recipe': recipe,
             'tags': recipe.tag.all(),
             'recipe_ingredients': recipe_ingredients,
-            'favorite': FavoriteRecipe().is_followed(recipe, request.user),
-            'in_cart': Purchase.is_purchased(recipe, request.user)
+            'favorite': FollowRecipeView.is_followed(recipe, request.user),
+            'in_cart': ShoppingCartView.is_followed(recipe, request.user),
+            'subscribed': FollowUserView.is_followed(
+                recipe.author, request.user)
         },
     )
 
 
 class FollowThrough(View, LoginRequiredMixin):
-
-    def __init__(self, followed_class, followed_through_name, through_class):
-        super().__init__()
-        self._followed_through_name = followed_through_name
-        self._followed_class = followed_class
-        self._through_class = through_class
+    # override class attributes in child classes
+    _followed_through_name = None
+    _followed_class = None
+    _through_class = None
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -123,89 +123,34 @@ class FollowThrough(View, LoginRequiredMixin):
         through_obj.delete()
         return JsonResponse({'success': True})
 
-    def is_followed(self, followed, user):
-        filter_kwargs = {self._followed_through_name: followed}
-        found = get_object_or_None(self._through_class,
+    @classmethod
+    def is_followed(cls, followed, user):
+        filter_kwargs = {cls._followed_through_name: followed}
+        found = get_object_or_None(cls._through_class,
                                    user=user, **filter_kwargs)
         return found is not None
 
 
-class FavoriteRecipe(FollowThrough):
+class FollowRecipeView(FollowThrough):
+    _followed_through_name = 'recipe'
+    _followed_class = Recipe
+    _through_class = FollowRecipe
 
-    def __init__(self):
-        super().__init__(followed_class=Recipe, through_class=FollowRecipe,
-                         followed_through_name='recipe')
+
+class FollowUserView(FollowThrough):
+    _followed_through_name = 'author'
+    _followed_class = User
+    _through_class = FollowUser
 
 
-# class FavoriteRecipe(View, LoginRequiredMixin):
-#
-#     #TODO
-#     # Add csrf support
-#     @method_decorator(csrf_exempt)
-#     def dispatch(self, request, *args, **kwargs):
-#         return super().dispatch(request, *args, **kwargs)
-#
-#     def post(self, request):
-#         result = JsonResponse({'success': False})
-#         request_body = json.loads(request.body)
-#         recipe_id = request_body.get('id')
-#         if recipe_id is not None:
-#             recipe = get_object_or_404(Recipe, id=recipe_id)
-#             follow_obj, created = FollowRecipe.objects.get_or_create(
-#                 recipe=recipe, user=request.user)
-#             if created:
-#                 result = JsonResponse({'success': True})
-#         else:
-#             result = JsonResponse({'success': False}, 400)
-#         return result
-#
-#     def delete(self, request, recipe_id):
-#         follow_obj = get_object_or_404(
-#             FollowRecipe, recipe=recipe_id, user=request.user)
-#         follow_obj.delete()
-#         return JsonResponse({'success': True})
-#
-#     @staticmethod
-#     def is_favorite(recipe, user):
-#         found = get_object_or_None(FollowRecipe, user=user.id, recipe=recipe)
-#         return found is not None
+class ShoppingCartView(FollowThrough):
+    _followed_through_name = 'recipe'
+    _followed_class = Recipe
+    _through_class = ShoppingCart
 
 
 # TODO
-# refactor into one class with FavoriteRecipe
-class Purchase(View, LoginRequiredMixin):
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request):
-        result = JsonResponse({'success': False})
-        request_body = json.loads(request.body)
-        recipe_id = request_body.get('id')
-        if recipe_id is not None:
-            recipe = get_object_or_404(Recipe, id=recipe_id)
-            cart_obj, created = ShoppingCart.objects.get_or_create(
-                recipe=recipe, user=request.user)
-            if created:
-                result = JsonResponse({'success': True})
-        else:
-            result = JsonResponse({'success': False}, 400)
-        return result
-
-    def delete(self, request, recipe_id):
-        cart_obj = get_object_or_None(ShoppingCart, recipe__id=recipe_id,
-                                      user=request.user)
-        if cart_obj is not None:
-            cart_obj.delete()
-        return JsonResponse({'success': True})
-
-    @staticmethod
-    def is_purchased(recipe, user):
-        item = get_object_or_None(ShoppingCart, user=user, recipe=recipe)
-        return item is not None
-
-
+# make form sutable for recipe creation
 @login_required
 def edit_recipe(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
@@ -243,9 +188,18 @@ class RecipeEditor(object):
         all_tags = Tag.objects.all()
         recipe_tags = self._recipe.tag.all()
         ingredients = Ingridient.objects.all()
-        recipe_ingredients = RecipeIngridient.objects.filter(
-            recipe=self._recipe.id)
-        template = 'formChangeRecipe.html'
+        if self._recipe:
+            recipe_ingredients = RecipeIngridient.objects.filter(
+                recipe=self._recipe.id)
+            form_title = 'Редактирование рецепта'
+            save_title = 'Сохранить'
+            edit_mode = True
+        else:
+            recipe_ingredients = []
+            form_title = 'Создание рецепта'
+            save_title = 'Создать рецепт'
+            edit_mode = False
+        template = 'formCreateOrEditRecipe.html'
         return render(
             self._request, template,
             {
@@ -254,6 +208,9 @@ class RecipeEditor(object):
                 'recipe_tags': recipe_tags,
                 'ingredients': ingredients,
                 'recipe_ingredients': recipe_ingredients,
+                'form_title': form_title,
+                'save_title': save_title,
+                'edit_mode': edit_mode,
             },
         )
 
@@ -328,28 +285,3 @@ def edit_model_form(request, recipe_id):
     else:
         form = RecipeForm(instance=recipe)
     return render(request, 'recipeEditModelForm.html', {'form': form})
-
-# class RecipeViewSet(viewsets.ModelViewSet):
-#     serializer_class = RecipeSerializer
-#     permission_classes = [IsAuthenticated]
-#
-#     # def get_queryset(self):
-#     #     recipe_id = self.kwargs.get('id')
-#     #     user = self.request.user
-#     #     follow_data = dict(user=user, recipe=recipe_id)
-#     #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-#     #     # review = get_object_or_404(FollowRecipe, pk=review_id, title__pk=title_id)
-#     #     return follow_obj
-#
-#     # def perform_create(self, serializer):
-#     #     recipe_id = self.kwargs.get('id')
-#     #     user = self.request.user
-#     #     follow_data = dict(user=user, recipe=recipe_id)
-#     #     follow_obj = get_object_or_None(FollowRecipe, **follow_data)
-#     #     serializer.save(**follow_data)
-#
-#     def perform_update(self, serializer):
-#         super().perform_update(serializer)
-#         pass
-#
-#

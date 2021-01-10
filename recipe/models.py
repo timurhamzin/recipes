@@ -133,3 +133,9 @@ class ShoppingCart(models.Model):
         Recipe,
         on_delete=models.CASCADE,
         related_name='shopping_carts')
+
+    class Meta:
+        unique_together = ['user', 'recipe']
+
+    def __str__(self):
+        return f'User {self.user} added {self.recipe} to their shopping cart'

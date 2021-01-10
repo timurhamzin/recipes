@@ -10,26 +10,9 @@
     <link rel="stylesheet" href="{% static './pages/single.css' %}">
 </head>
 <body class="body">
-<header class="header">
-    <nav class="nav">
-        <div class="nav__container container">
-            <ul class="nav__items list">
-                <li class="nav__item nav__item_active"><a href="{% static '#' %}" class="nav__link link">Рецепты</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Мои подписки</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Создать рецепт</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Избранное</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Список покупок</a><span class="badge badge_style_blue nav__badge" id="counter">4</span></li>
-
-            </ul>
-            <ul class="nav__items list">
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Изменить пароль</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Выход</a></li>
-            </ul>
-        </div>
-    </nav>
-</header>
-    <main class="main container">
-        <div class="single-card" data-id="{{ recipe.id }}" data-author=" {{ recipe.author.id }} ">
+{% include "header.html" with recipe=recipe %}
+   <main class="main container">
+        <div class="single-card" data-id="{{ recipe.id }}" data-author="{{ recipe.author.id }}">
             <img src="{{ recipe.image_url }}" alt="Фото '{{ recipe }}'" class="single-card__image">
             <div class="single-card__info">
                 <div class="single-card__header-info">
@@ -65,7 +48,7 @@
                             {% define "button_style_light-blue-outline" as to_cart_button_class %}
                             {% define "icon-check" as to_cart_text_class %}
                             {% define "" as to_cart_data_out %}
-                            {% define "Рецепт добавлен" as to_cart_text %}
+                            {% define " Рецепт добавлен" as to_cart_text %}
                         {% else %}
                             {% define "button_style_blue" as to_cart_button_class %}
                             {% define "icon-plus" as to_cart_text_class %}
@@ -75,7 +58,19 @@
                         <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
                             <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
                     </li>
-                    <li class="single-card__item"><button class="button button_style_light-blue button_size_subscribe" name="subscribe" data-out>Подписаться на автора</button></li>
+                    <li class="single-card__item">
+                        {% if subscribed %}
+                            {% define "" as subscribe_data_out %}
+                            {% define "button_style_blue" as subscribe_button_class %}
+                            {% define "Отписаться от автора" as subscribe_text %}
+                        {% else %}
+                            {% define "data-out" as subscribe_data_out %}
+                            {% define "" as subscribe_button_class %}
+                            {% define "Подписаться на автора" as subscribe_text %}
+                        {% endif %}
+                        <button class="button button_size_subscribe {{ subscribe_button_class }}" name="subscribe"
+                                {{ subscribe_data_out }}>{{ subscribe_text }}</button>
+                    </li>
                 </ul>
                 <div class="single-card__section">
                     <h3 class="single-card__section-title">Ингридиенты:</h3>

@@ -7,7 +7,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Редактирование рецепта</title>
+    <title>{{ form_title }}</title>
     <link rel="stylesheet" href="{% static './pages/form.css' %}">
 </head>
 <body class="body">
@@ -31,7 +31,7 @@
 </header>
 <main class="main container">
     <div class="main__header">
-        <h1 class="main__title">Редактирование рецепта</h1>
+        <h1 class="main__title">{{ form_title }}</h1>
     </div>
     <div class="form-container">
         <form class="form" method="POST" enctype="multipart/form-data">
@@ -124,8 +124,12 @@
                 </div>
             </div>
             <div class="form__footer">
-                <button class="button button_style_blue">Сохранить</button>
-                <a style="margin-left: 2.5em" href="/{{ recipe.id }}/delete/" class="form__ingredient-link">Удалить</a>
+                <button class="button button_style_blue">{{ save_title }}</button>
+                {% if edit_mode %}
+                    <a style="margin-left: 2.5em" href="/{{ recipe.id }}/delete/" class="form__ingredient-link">
+                        Удалить
+                    </a>
+                {% endif %}
             </div>
         </form>
     </div>
