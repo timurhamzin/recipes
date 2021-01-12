@@ -1,14 +1,14 @@
+{% load nav_item_li %}
 <header class="header">
   <nav class="nav">
       <div class="nav__container container">
           <ul class="nav__items list">
-              <li class="nav__item nav__item_active"><a href="#" class="nav__link link">Рецепты</a></li>
-              <li class="nav__item"><a href="#" class="nav__link link">Мои подписки</a></li>
-              <li class="nav__item"><a href="#" class="nav__link link">Создать рецепт</a></li>
-              <li class="nav__item"><a href="#" class="nav__link link">Избранное</a></li>
-              <li class="nav__item"><a href="#" class="nav__link link">Список покупок</a>
-                  <span class="badge badge_style_blue nav__badge" id="counter">4</span></li>
-
+              {% nav_item_li request "/" "Рецепты" %}
+              {% nav_item_li request "#" "Мои подписки" %}
+              {% nav_item_li request "/create/" "Создать рецепт" %}
+              {% nav_item_li request "/favorite_list/" "Избранное" %}
+              {% nav_item_li request "#" "Список покупок" False %}
+                  <span class="badge badge_style_blue nav__badge" id="counter">{% purchased_num request %}</span></li>
           </ul>
           <ul class="nav__items list">
               <li class="nav__item"><a href="#" class="nav__link link">Изменить пароль</a></li>

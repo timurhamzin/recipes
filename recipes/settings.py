@@ -141,3 +141,20 @@ CORS_URLS_REGEX = r'^/api/.*$'
 #         'rest_framework.authentication.TokenAuthentication',
 #     ],
 # }
+
+# для выдачи логов в консоль
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        }
+    },
+}

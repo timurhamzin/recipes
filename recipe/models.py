@@ -24,7 +24,7 @@ class Recipe(models.Model):
     ingridients = models.ManyToManyField(
         'Ingridient', through='RecipeIngridient', related_name='recipes')
     tag = models.ManyToManyField('Tag', blank=False)
-    cooking_time = models.IntegerField()
+    cooking_time = models.IntegerField(null=False, blank=True, default=0)
     pub_date = models.DateTimeField('date published', auto_now_add=True)
     purchased_by = models.ManyToManyField(
         User, blank=True, related_name='purchased_recipes',
@@ -63,12 +63,11 @@ class RecipeIngridient(models.Model):
     ingridient = models.ForeignKey(
         Ingridient,
         on_delete=models.CASCADE,
-        related_name='ingridients'
+        related_name='recipe_ingridients'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipes'
     )
     amount = models.PositiveSmallIntegerField()
 
@@ -94,11 +93,11 @@ class FollowRecipe(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipe_follower')
+        related_name='follow_recipes')
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='followed_recipe')
+        related_name='follow_recipes')
 
     class Meta:
         unique_together = ['user', 'recipe']
@@ -126,13 +125,8 @@ class FollowUser(models.Model):
 
 class ShoppingCart(models.Model):
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='shopping_carts')
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_carts')
+        User, on_delete=models.CASCADE, related_name='purchased')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ['user', 'recipe']

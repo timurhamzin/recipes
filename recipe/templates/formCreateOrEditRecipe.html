@@ -11,24 +11,7 @@
     <link rel="stylesheet" href="{% static './pages/form.css' %}">
 </head>
 <body class="body">
-<header class="header">
-    <nav class="nav">
-        <div class="nav__container container">
-            <ul class="nav__items list">
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Рецепты</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Мои подписки</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Создать рецепт</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Избранное</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Список покупок</a> <span class="badge badge_style_blue nav__badge" id="counter"></span></li>
-
-            </ul>
-            <ul class="nav__items list">
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Изменить пароль</a></li>
-                <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Выход</a></li>
-            </ul>
-        </div>
-    </nav>
-</header>
+{% include "header.html" %}
 <main class="main container">
     <div class="main__header">
         <h1 class="main__title">{{ form_title }}</h1>
@@ -67,13 +50,15 @@
                         <div class="form__dropdown">
                             <select id="nameIngredient" class="form__input">
                                 {% for ingredient in ingredients %}
-                                    <option value="{{ ingredient }}">{{ ingredient }}</option>
+                                    <option value="{{ ingredient }}, {{ ingredient.measurement_unit }}">
+                                        {{ ingredient }}, {{ ingredient.measurement_unit }}
+                                    </option>
                                 {% endfor %}
                             </select>
                             <div class="form__dropdown-items"></div>
                         </div>
                         <input type="number" id="cantidad" class="form__input" min="0">
-                        <label for="cantidad" class="form__label" id="cantidadVal">шт.</label>
+                        <label for="cantidad" class="form__label" id="cantidadVal"></label>
                     </div>
 
                     <div class="form__field-group-ingredientes-container">

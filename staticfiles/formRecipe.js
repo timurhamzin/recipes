@@ -61,9 +61,9 @@ function Ingredients() {
     // получение данных из инпутов для добавления
     const getValue = (e) => {
         const data = {
-            name: nameIngredient.value,
+            name: nameIngredient.value.split(", ")[0], // nameIngredient.value,
             value: cantidad.value,
-            units: cantidadVal.textContent
+            units: nameIngredient.value.split(", ")[1] // cantidadVal.textContent
         };
         clearValue(nameIngredient);
         clearValue(cantidad);

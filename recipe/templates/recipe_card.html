@@ -1,7 +1,7 @@
 {% load static %}
-<div class="card" data-id="120">
+<div class="card" data-id="{{ recipe.id }}">
     <a href="{% url 'single_page' recipe_id=recipe.id %}" class="link" target="_blank">
-        <img src="{{ recipe.image_url }}" alt="Какой-то текст" class="card__image">
+        <img src="{{ recipe.image_url }}" alt="{{ recipe.title }}" class="card__image">
     </a>
     <div class="card__body">
         <a class="card__title link" href="#" target="_blank">{{ recipe }}</a>
@@ -16,19 +16,28 @@
         </div>
     </div>
     <div class="card__footer">
-        {% if in_cart %}
+        {% if recipe.id in purchased %}
             {% define "button_style_light-blue-outline" as to_cart_button_class %}
             {% define "icon-check" as to_cart_text_class %}
             {% define "" as to_cart_data_out %}
             {% define " Рецепт добавлен" as to_cart_text %}
         {% else %}
-            {% define "button_style_blue" as to_cart_button_class %}
+            {% define "button_style_light-blue" as to_cart_button_class %}
             {% define "icon-plus" as to_cart_text_class %}
             {% define "data-out" as to_cart_data_out %}
             {% define "Добавить в покупки" as to_cart_text %}
         {% endif %}
         <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
-            <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
-<!--        <button class="button button_style_light-blue" name="purchases" data-out><span class="icon-plus button__icon"></span>Добавить в покупки</button>-->
+        <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
+        {% if recipe.id in favorites %}
+            {% define "" as favorite_data_out %}
+            {% define "icon-favorite_active" as favorite_active_class %}
+        {% else %}
+            {% define "data-out" as favorite_data_out %}
+            {% define "" as favorite_active_class %}
+        {% endif %}
+        <button class="button button_style_none" name="favorites" {{ favorite_data_out }}>
+            <span class="icon-favorite icon-favorite_big {{ favorite_active_class }}"></span></button>
+<!--        <div class="single-card__favorite-tooltip tooltip">Добавить в избранное</div>-->
     </div>
 </div>

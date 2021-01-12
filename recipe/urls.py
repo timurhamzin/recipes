@@ -10,7 +10,9 @@ from .views import FollowRecipeView, FollowUserView
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('favorite_list/', views.favorite_list, name='favorite_list'),
     path('<int:recipe_id>/', views.single_page, name='single_page'),
+    path('create/', views.create_recipe, name='create_recipe'),
     path('<int:recipe_id>/edit/', views.edit_recipe, name='edit_recipe'),
     path('<int:recipe_id>/delete/', views.delete_recipe, name='delete_recipe'),
     path('purchases/', views.ShoppingCartView.as_view()),

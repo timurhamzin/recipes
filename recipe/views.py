@@ -1,33 +1,30 @@
 import json
 from typing import Type
-from urllib.response import addbase
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Model, Q
+from django.db.models import Model, Q, Prefetch
 from django.forms import modelform_factory, ModelForm
-from django.http import HttpResponseRedirect, HttpResponseForbidden, QueryDict
+from django.http import HttpResponseForbidden, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
+from django.urls import reverse
 
-# Create your views here.
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
 
 from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
     Ingridient, ShoppingCart, FollowUser
-from recipe.serializers import RecipeSerializer
 
 User = get_user_model()
 
-CARDS_PER_PAGE = 1
+CARDS_PER_PAGE = 2
 DEFAULT_TAG_VALUE = 1
 
 
@@ -38,18 +35,28 @@ def get_object_or_None(model: Type[Model], **kwargs):
         return None
 
 
-def index(request):
+def index(request, only_favorite=False):
     user = request.user
     get_dict = request.GET.dict()
     all_tags = Tag.objects.all()
-    selected_tags = [t.name for t in all_tags if \
-                     get_dict.get(t.name, str(DEFAULT_TAG_VALUE)) == '1']
-    recipes = Recipe.objects.filter(
-        Q(tag__name__in=selected_tags) | Q(tag=None)).distinct()
+    selected_tags = [t.name for t in all_tags
+                     if get_dict.get(t.name, str(DEFAULT_TAG_VALUE)) == '1']
+    followed = list(user.follow_recipes.values_list('recipe', flat=True))
+    if only_favorite:
+        if not user.is_authenticated:
+            raise PermissionDenied('You must be logged in to view favorites.')
+        recipes = Recipe.objects.filter(
+            (Q(tag__name__in=selected_tags) | Q(tag=None)) &
+            Q(id__in=followed)).distinct()
+    else:
+        recipes = Recipe.objects.filter(
+            Q(tag__name__in=selected_tags) | Q(tag=None)).distinct()
 
     paginator = Paginator(recipes, CARDS_PER_PAGE)
     page_number = request.GET.get('page', 1)
     page = paginator.get_page(page_number)
+    purchased_recipes = list(
+        user.purchased_recipes.values_list('id', flat=True))
 
     if user.is_authenticated:
         template = 'indexAuth.html'
@@ -63,26 +70,33 @@ def index(request):
             'recipes': recipes,
             'all_tags': all_tags,
             'tag_filters': {},
+            'shopping_cart': {},
+            'purchased': purchased_recipes,
+            'favorites': followed
         },
     )
 
 
-def single_page(request, followed_id):
+def favorite_list(request):
+    return index(request, only_favorite=True)
+
+
+def single_page(request, recipe_id):
     user = request.user
-    recipe = get_object_or_404(Recipe, id=followed_id)
+    recipe = get_object_or_404(Recipe.objects.prefetch_related(
+        Prefetch('recipeingridient_set', to_attr='recipe_ingredients')),
+        id=recipe_id)
     if user.is_authenticated:
         template = 'singlePage.html'
     else:
         template = 'singlePageNotAuth.html'
 
-    recipe_ingredients = RecipeIngridient.objects.filter(
-        recipe=followed_id)
     return render(
         request, template,
         {
             'recipe': recipe,
             'tags': recipe.tag.all(),
-            'recipe_ingredients': recipe_ingredients,
+            'recipe_ingredients': recipe.recipe_ingredients,
             'favorite': FollowRecipeView.is_followed(recipe, request.user),
             'in_cart': ShoppingCartView.is_followed(recipe, request.user),
             'subscribed': FollowUserView.is_followed(
@@ -93,9 +107,10 @@ def single_page(request, followed_id):
 
 class FollowThrough(View, LoginRequiredMixin):
     # override class attributes in child classes
-    _followed_through_name = None
+    _followed_through_name = ''
     _followed_class = None
     _through_class = None
+    _follow_counter_field_name = ''
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -106,21 +121,31 @@ class FollowThrough(View, LoginRequiredMixin):
         request_body = json.loads(request.body)
         followed_id = request_body.get('id')
         if followed_id is not None:
-            followed = get_object_or_404(self._followed_class, id=followed_id)
-            filter_kwargs = {self._followed_through_name: followed}
-            follow_obj, created = self._through_class.objects.get_or_create(
+            followed_obj = get_object_or_404(
+                self._followed_class, id=followed_id)
+            filter_kwargs = {self._followed_through_name: followed_obj}
+            through_obj, created = self._through_class.objects.get_or_create(
                 user=request.user, **filter_kwargs)
             if created:
                 result = JsonResponse({'success': True})
+            self.update_counter(followed_obj, 1)
         else:
             result = JsonResponse({'success': False}, 400)
         return result
 
     def delete(self, request, followed_id):
         filter_kwargs = {self._followed_through_name: followed_id}
-        through_obj = get_object_or_404(
-            self._through_class, user=request.user, **filter_kwargs)
-        through_obj.delete()
+        try:
+            through_obj = get_object_or_404(
+                self._through_class.objects.select_related(
+                    self._followed_through_name),
+                user=request.user, **filter_kwargs
+            )
+            followed_obj = getattr(through_obj, self._followed_through_name)
+            through_obj.delete()
+            self.update_counter(followed_obj, -1)
+        except Http404:
+            pass
         return JsonResponse({'success': True})
 
     @classmethod
@@ -130,11 +155,18 @@ class FollowThrough(View, LoginRequiredMixin):
                                    user=user, **filter_kwargs)
         return found is not None
 
+    def update_counter(self, followed_obj, add):
+        if self._follow_counter_field_name:
+            count = getattr(followed_obj, self._follow_counter_field_name)
+            setattr(followed_obj, self._follow_counter_field_name, count + add)
+            followed_obj.save()
+
 
 class FollowRecipeView(FollowThrough):
     _followed_through_name = 'recipe'
     _followed_class = Recipe
     _through_class = FollowRecipe
+    _follow_counter_field_name = 'favorite_count'
 
 
 class FollowUserView(FollowThrough):
@@ -149,11 +181,13 @@ class ShoppingCartView(FollowThrough):
     _through_class = ShoppingCart
 
 
-# TODO
-# make form sutable for recipe creation
+# def edit_recipe(request, recipe_id, redirect_to=''):
 @login_required
 def edit_recipe(request, recipe_id):
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if recipe_id is not None:
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+    else:
+        recipe = Recipe(author=request.user)
     editor = RecipeEditor(recipe, request)
     if recipe.author != request.user:
         return HttpResponseForbidden()
@@ -166,7 +200,20 @@ def edit_recipe(request, recipe_id):
             editor.update_recipe_image()
             editor.create_recipe_tags()
             editor.create_recipe_ingredients()
-        return redirect(request.path_info)
+        # if redirect_to:
+        #     return redirect(redirect_to)
+        # else:
+        return redirect(
+            reverse('single_page', kwargs=dict(recipe_id=recipe.id)))
+
+
+@login_required
+def create_recipe(request):
+    # created = Recipe(author=request.user)
+    # edit_url = reverse('single_page', kwargs=dict(recipe_id=created.id))
+    # return edit_recipe(request, created.id, redirect_to=edit_url)
+    # return edit_recipe(request, created.id)
+    return edit_recipe(request, None)
 
 
 @login_required
