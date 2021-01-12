@@ -19,6 +19,8 @@ urlpatterns = [
     path('purchases/<int:followed_id>/', views.ShoppingCartView.as_view()),
     path('subscriptions/', FollowUserView.as_view()),
     path('subscriptions/<int:followed_id>/', FollowUserView.as_view()),
+    path('my_followed/', views.my_followed, name='my_followed'),
+    path('author/<int:author_id>/', views.author, name='author'),
     path('favorites/', FollowRecipeView.as_view()),
     path('favorites/<int:followed_id>/', FollowRecipeView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

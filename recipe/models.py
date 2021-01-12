@@ -14,7 +14,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipe_author')
+        related_name='recipes')
     title = models.CharField(max_length=200)
     image = models.ImageField(
         upload_to=image_upload_to,
@@ -110,11 +110,11 @@ class FollowUser(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='follower')
+        related_name='follows')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='followed')
+        related_name='followed_by')
 
     class Meta:
         unique_together = ['user', 'author']

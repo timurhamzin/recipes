@@ -25,6 +25,7 @@ from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
 User = get_user_model()
 
 CARDS_PER_PAGE = 2
+FOLLOWED_PER_PAGE = 2
 DEFAULT_TAG_VALUE = 1
 
 
@@ -35,28 +36,36 @@ def get_object_or_None(model: Type[Model], **kwargs):
         return None
 
 
-def index(request, only_favorite=False):
+def index(request, only_favorite=False, by_author=None):
+    # set context variables
     user = request.user
     get_dict = request.GET.dict()
     all_tags = Tag.objects.all()
     selected_tags = [t.name for t in all_tags
                      if get_dict.get(t.name, str(DEFAULT_TAG_VALUE)) == '1']
     followed = list(user.follow_recipes.values_list('recipe', flat=True))
+    purchased_recipes = list(
+        user.purchased_recipes.values_list('id', flat=True))
+
+    # select recipes
+    recipes = Recipe.objects.filter(
+        Q(tag__name__in=selected_tags) | Q(tag=None))
+    title = 'Рецепты'
     if only_favorite:
         if not user.is_authenticated:
             raise PermissionDenied('You must be logged in to view favorites.')
-        recipes = Recipe.objects.filter(
-            (Q(tag__name__in=selected_tags) | Q(tag=None)) &
-            Q(id__in=followed)).distinct()
-    else:
-        recipes = Recipe.objects.filter(
-            Q(tag__name__in=selected_tags) | Q(tag=None)).distinct()
+        title = f'Избранные рецепты'
+        recipes = recipes.filter(id__in=followed)
+    if by_author is not None:
+        author = get_object_or_404(User, id=by_author)
+        title = f'{author}'
+        recipes = recipes.filter(author=by_author)
+    recipes = recipes.distinct()
 
+    # set pages
     paginator = Paginator(recipes, CARDS_PER_PAGE)
     page_number = request.GET.get('page', 1)
     page = paginator.get_page(page_number)
-    purchased_recipes = list(
-        user.purchased_recipes.values_list('id', flat=True))
 
     if user.is_authenticated:
         template = 'indexAuth.html'
@@ -72,13 +81,37 @@ def index(request, only_favorite=False):
             'tag_filters': {},
             'shopping_cart': {},
             'purchased': purchased_recipes,
-            'favorites': followed
+            'favorites': followed,
+            'page_title': title
         },
     )
 
 
 def favorite_list(request):
     return index(request, only_favorite=True)
+
+
+@login_required
+def my_followed(request):
+    user = request.user
+    author_ids = list(user.follows.values_list('author', flat=True))
+    authors = User.objects.filter(id__in=author_ids).all()
+    paginator = Paginator(authors, FOLLOWED_PER_PAGE)
+    page_number = request.GET.get('page', 1)
+    page = paginator.get_page(page_number)
+    return render(
+        request, 'myFollow.html',
+        {
+            'page': page,
+            'paginator': paginator,
+            'authors': authors
+        },
+    )
+
+
+#TODO check with Figma
+def author(request, author_id):
+    return index(request, by_author=author_id)
 
 
 def single_page(request, recipe_id):
@@ -231,11 +264,17 @@ class RecipeEditor(object):
         self._recipe = recipe
         self._request = request
 
+    def get_tags(self):
+        if self._recipe.id is not None:
+            return self._recipe.tag.all()
+        else:
+            return []
+
     def render_get(self):
         all_tags = Tag.objects.all()
-        recipe_tags = self._recipe.tag.all()
         ingredients = Ingridient.objects.all()
-        if self._recipe:
+        recipe_tags = self.get_tags()
+        if self._recipe.id is not None:
             recipe_ingredients = RecipeIngridient.objects.filter(
                 recipe=self._recipe.id)
             form_title = 'Редактирование рецепта'
