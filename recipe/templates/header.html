@@ -1,19 +1,37 @@
 {% load nav_item_li %}
+{% csrf_token %}
+{% load static %}
 <header class="header">
   <nav class="nav">
-      <div class="nav__container container">
-          <ul class="nav__items list">
-              {% nav_item_li request "/" "Рецепты" %}
-              {% nav_item_li request "/my_followed/" "Мои подписки" %}
-              {% nav_item_li request "/create/" "Создать рецепт" %}
-              {% nav_item_li request "/favorite_list/" "Избранное" %}
-              {% nav_item_li request "/shopping_cart/" "Список покупок" False %}
-                  <span class="badge badge_style_blue nav__badge" id="counter">{% purchased_num request %}</span></li>
-          </ul>
-          <ul class="nav__items list">
-              <li class="nav__item"><a href="#" class="nav__link link">Изменить пароль</a></li>
-              <li class="nav__item"><a href="#" class="nav__link link">Выход</a></li>
-          </ul>
-      </div>
+        {% if request.user.is_authenticated %}
+            <div class="nav__container container">
+              <ul class="nav__items list">
+                  {% nav_item_li request "/" "Рецепты" %}
+                  {% nav_item_li request "/my_followed/" "Мои подписки" %}
+                  {% nav_item_li request "/create/" "Создать рецепт" %}
+                  {% nav_item_li request "/favorite_list/" "Избранное" %}
+                  {% nav_item_li request "/shopping_cart/" "Список покупок" False %}
+                      <span class="badge badge_style_blue nav__badge" id="counter">{% purchased_num request %}</span></li>
+              </ul>
+              <ul class="nav__items list">
+                  <li class="nav__item"><a href="#" class="nav__link link">Изменить пароль</a></li>
+                  <li class="nav__item"><a href="#" class="nav__link link">Выход</a></li>
+              </ul>
+            </div>
+        {% else %}
+            <header class="header">
+                <nav class="nav">
+                    <div class="nav__container container">
+                        <ul class="nav__items list">
+                            {% nav_item_li request "/" "Рецепты" add_class="nav__item_disabled" %}
+                        </ul>
+                        <ul class="nav__items list">
+                            <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Войти</a></li>
+                            <li class="nav__item"><a href="{% static '#' %}" class="button button_style_blue">Создать аккаунт</a></li>
+                        </ul>
+                    </div>
+                </nav>
+            </header>
+        {% endif %}
   </nav>
 </header>

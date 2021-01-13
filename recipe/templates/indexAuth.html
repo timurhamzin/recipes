@@ -28,24 +28,26 @@
                 {% endfor %}
             </ul>
         </div>
-        {% if by_author != None %}
-            {% user_follows request.user as follows %}
-            {% if by_author in follows %}
-                {% define "Отписаться от автора" as subscribe_text %}
-                {% define "" as subscribe_data_out %}
+        {% if request.user.is_authenticated %}
+            {% if by_author != None %}
+                {% user_follows request.user as follows %}
+                {% if by_author in follows %}
+                    {% define "Отписаться от автора" as subscribe_text %}
+                    {% define "" as subscribe_data_out %}
+                {% else %}
+                    {% define "Подписаться на автора" as subscribe_text %}
+                    {% define "data-out" as subscribe_data_out %}
+                {% endif %}
+                <div class="author-subscribe" data-author="{{ by_author }}">
+                    <p style="padding: 0 0 2em 0;">
+                        <button class="button button_style_light-blue button_size_subscribe"
+                                name="subscribe" {{ subscribe_data_out }}>{{ subscribe_text }}
+                        </button>
+                    </p>
+                </div>
             {% else %}
-                {% define "Подписаться на автора" as subscribe_text %}
-                {% define "data-out" as subscribe_data_out %}
+                {% define "" as subscribe_load_js %}
             {% endif %}
-            <div class="author-subscribe" data-author="{{ by_author }}">
-                <p style="padding: 0 0 2em 0;">
-                    <button class="button button_style_light-blue button_size_subscribe"
-                            name="subscribe" {{ subscribe_data_out }}>{{ subscribe_text }}
-                    </button>
-                </p>
-            </div>
-        {% else %}
-            {% define "" as subscribe_load_js %}
         {% endif %}
         <div class="card-list">
             {% for recipe in page %}

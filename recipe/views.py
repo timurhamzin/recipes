@@ -1,8 +1,9 @@
 import json
 from typing import Type
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -44,23 +45,26 @@ def index(request, only_favorite=False, by_author=None):
     all_tags = Tag.objects.all()
     selected_tags = [t.name for t in all_tags
                      if get_dict.get(t.name, str(DEFAULT_TAG_VALUE)) == '1']
-    followed = list(user.follow_recipes.values_list('recipe', flat=True))
-    purchased_recipes = list(
-        user.purchased_recipes.values_list('id', flat=True))
 
     # select recipes
     recipes = Recipe.objects.filter(
         Q(tag__name__in=selected_tags) | Q(tag=None))
     title = 'Рецепты'
-    if only_favorite:
-        if not user.is_authenticated:
-            raise PermissionDenied('You must be logged in to view favorites.')
-        title = f'Избранные рецепты'
-        recipes = recipes.filter(id__in=followed)
-    if by_author is not None:
-        author = get_object_or_404(User, id=by_author)
-        title = f'{author}'
-        recipes = recipes.filter(author=by_author)
+    if request.user.is_authenticated:
+        followed = list(user.follow_recipes.values_list('recipe', flat=True))
+        purchased_recipes = list(
+            user.purchased_recipes.values_list('id', flat=True))
+        if only_favorite:
+            title = f'Избранные рецепты'
+            recipes = recipes.filter(id__in=followed)
+        if by_author is not None:
+            author = get_object_or_404(User, id=by_author)
+            title = f'{author}'
+            recipes = recipes.filter(author=by_author)
+    else:
+        followed = None
+        purchased_recipes = None
+
     recipes = recipes.distinct()
 
     # set pages
@@ -68,12 +72,8 @@ def index(request, only_favorite=False, by_author=None):
     page_number = request.GET.get('page', 1)
     page = paginator.get_page(page_number)
 
-    if user.is_authenticated:
-        template = 'indexAuth.html'
-    else:
-        template = 'indexNotAuth.html'
     return render(
-        request, template,
+        request, 'indexAuth.html',
         {
             'page': page,
             'paginator': paginator,
@@ -133,17 +133,11 @@ def author(request, author_id):
 
 
 def single_page(request, recipe_id):
-    user = request.user
     recipe = get_object_or_404(Recipe.objects.prefetch_related(
         Prefetch('recipeingridient_set', to_attr='recipe_ingredients')),
         id=recipe_id)
-    if user.is_authenticated:
-        template = 'singlePage.html'
-    else:
-        template = 'singlePageNotAuth.html'
-
     return render(
-        request, template,
+        request, 'singlePage.html',
         {
             'recipe': recipe,
             'tags': recipe.tag.all(),
@@ -163,7 +157,7 @@ class FollowThrough(View, LoginRequiredMixin):
     _through_class = None
     _follow_counter_field_name = ''
 
-    @method_decorator(csrf_exempt)
+    # @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
@@ -201,9 +195,12 @@ class FollowThrough(View, LoginRequiredMixin):
 
     @classmethod
     def is_followed(cls, followed, user):
-        filter_kwargs = {cls._followed_through_name: followed}
-        found = get_object_or_None(cls._through_class,
-                                   user=user, **filter_kwargs)
+        if user.is_authenticated:
+            filter_kwargs = {cls._followed_through_name: followed}
+            found = get_object_or_None(cls._through_class,
+                                       user=user, **filter_kwargs)
+        else:
+            return False
         return found is not None
 
     def update_counter(self, followed_obj, add):
@@ -366,7 +363,7 @@ class RecipeEditor(object):
 
 
 # TODO
-# remove url for this view, it's for testing purposes only
+# remove this view, it's for testing purposes only
 @login_required
 def edit_model_form(request, recipe_id):
     recipe = get_object_or_404(Recipe, id=recipe_id)
@@ -381,3 +378,18 @@ def edit_model_form(request, recipe_id):
     else:
         form = RecipeForm(instance=recipe)
     return render(request, 'recipeEditModelForm.html', {'form': form})
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            raw_password = form.cleaned_data.get('password1')
+            user = authenticate(username=username, password=raw_password)
+            login(request, user)
+            return redirect(reverse('index'))
+    else:
+        form = UserCreationForm()
+    return render(request, 'reg.html', {'form': form})

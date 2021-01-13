@@ -17,18 +17,20 @@
             <div class="single-card__info">
                 <div class="single-card__header-info">
                     <h1 class="single-card__title">{{ recipe }}</h1>
-                    <div class="single-card__favorite">
-                        {% if favorite %}
-                            {% define "" as favorite_data_out %}
-                            {% define "icon-favorite_active" as favorite_active_class %}
-                        {% else %}
-                            {% define "data-out" as favorite_data_out %}
-                            {% define "" as favorite_active_class %}
-                        {% endif %}
-                        <button class="button button_style_none" name="favorites" {{ favorite_data_out }}>
-                            <span class="icon-favorite icon-favorite_big {{ favorite_active_class }}"></span></button>
-                        <div class="single-card__favorite-tooltip tooltip">Добавить в избранное</div>
-                    </div>
+                    {% if request.user.is_authenticated %}
+                        <div class="single-card__favorite">
+                            {% if favorite %}
+                                {% define "" as favorite_data_out %}
+                                {% define "icon-favorite_active" as favorite_active_class %}
+                            {% else %}
+                                {% define "data-out" as favorite_data_out %}
+                                {% define "" as favorite_active_class %}
+                            {% endif %}
+                            <button class="button button_style_none" name="favorites" {{ favorite_data_out }}>
+                                <span class="icon-favorite icon-favorite_big {{ favorite_active_class }}"></span></button>
+                            <div class="single-card__favorite-tooltip tooltip">Добавить в избранное</div>
+                        </div>
+                    {% endif %}
                 </div>
                 <ul class="single-card__items">
                     {% for tag in tags %}
@@ -45,36 +47,38 @@
                         {% endif  %}
                     </ul>
                 </div>
-                <ul class="single-card__items">
-                    <li class="single-card__item">
-                        {% if in_cart %}
-                            {% define "button_style_light-blue-outline" as to_cart_button_class %}
-                            {% define "icon-check" as to_cart_text_class %}
-                            {% define "" as to_cart_data_out %}
-                            {% define " Рецепт добавлен" as to_cart_text %}
-                        {% else %}
-                            {% define "button_style_blue" as to_cart_button_class %}
-                            {% define "icon-plus" as to_cart_text_class %}
-                            {% define "data-out" as to_cart_data_out %}
-                            {% define "Добавить в покупки" as to_cart_text %}
-                        {% endif %}
-                        <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
-                            <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
-                    </li>
-                    <li class="single-card__item">
-                        {% if subscribed %}
-                            {% define "" as subscribe_data_out %}
-                            {% define "button_style_blue" as subscribe_button_class %}
-                            {% define "Отписаться от автора" as subscribe_text %}
-                        {% else %}
-                            {% define "data-out" as subscribe_data_out %}
-                            {% define "" as subscribe_button_class %}
-                            {% define "Подписаться на автора" as subscribe_text %}
-                        {% endif %}
-                        <button class="button button_size_subscribe {{ subscribe_button_class }}" name="subscribe"
-                                {{ subscribe_data_out }}>{{ subscribe_text }}</button>
-                    </li>
-                </ul>
+                {% if request.user.is_authenticated %}
+                    <ul class="single-card__items">
+                        <li class="single-card__item">
+                            {% if in_cart %}
+                                {% define "button_style_light-blue-outline" as to_cart_button_class %}
+                                {% define "icon-check" as to_cart_text_class %}
+                                {% define "" as to_cart_data_out %}
+                                {% define " Рецепт добавлен" as to_cart_text %}
+                            {% else %}
+                                {% define "button_style_blue" as to_cart_button_class %}
+                                {% define "icon-plus" as to_cart_text_class %}
+                                {% define "data-out" as to_cart_data_out %}
+                                {% define "Добавить в покупки" as to_cart_text %}
+                            {% endif %}
+                            <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
+                                <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
+                        </li>
+                        <li class="single-card__item">
+                            {% if subscribed %}
+                                {% define "" as subscribe_data_out %}
+                                {% define "button_style_blue" as subscribe_button_class %}
+                                {% define "Отписаться от автора" as subscribe_text %}
+                            {% else %}
+                                {% define "data-out" as subscribe_data_out %}
+                                {% define "" as subscribe_button_class %}
+                                {% define "Подписаться на автора" as subscribe_text %}
+                            {% endif %}
+                            <button class="button button_size_subscribe {{ subscribe_button_class }}" name="subscribe"
+                                    {{ subscribe_data_out }}>{{ subscribe_text }}</button>
+                        </li>
+                    </ul>
+                {% endif %}
                 <div class="single-card__section">
                     <h3 class="single-card__section-title">Ингридиенты:</h3>
                     <div class="single-card__items single-card__items_column">
