@@ -1,0 +1,48 @@
+<nav class="pagination" aria-label="Search results pages">
+    <ul class="pagination__container">
+        {% if page.number|add:'-2' > 0 %}
+            <li class="pagination__item">
+                <a class="pagination__link link"
+                   href="{{ request.path }}?{% set_page 1 request.GET.urlencode %}">1
+                </a>
+            </li>
+        {% endif %}
+        {% if page.number|add:'-3' > 0 %}
+            <li class="pagination__item">
+                <a class="pagination__link link"
+                   href="{{ request.path }}?{% set_page page.number request.GET.urlencode -2 %}">...
+                </a>
+            </li>
+        {% endif %}
+
+        {% for i in page.paginator.page_range %}
+            {% if page.number == i %}
+                <li class="pagination__item pagination__item_active">
+                    <a class="pagination__link link" href="#">{{ i }}</a>
+                </li>
+            {% elif i > page.number|add:'-2' and i < page.number|add:'2' %}
+                <li class="pagination__item">
+                    <a class="pagination__link link"
+                       href="{{ request.path }}?{% set_page i request.GET.urlencode %}">{{ i }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page.paginator.num_pages > page.number|add:'2' %}
+            <li class="pagination__item">
+                <a class="pagination__link link"
+                   href="{{ request.path }}?{% set_page page.number request.GET.urlencode 2 %}">...
+                </a>
+            </li>
+        {% endif %}
+        {% if page.paginator.num_pages > page.number|add:'1' %}
+            <li class="pagination__item">
+                <a class="pagination__link link"
+                   href="{{ request.path }}?{% set_page page.paginator.num_pages request.GET.urlencode %}">
+                    {{ page.paginator.num_pages }}
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>

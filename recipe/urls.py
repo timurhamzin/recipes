@@ -15,6 +15,7 @@ urlpatterns = [
     path('create/', views.create_recipe, name='create_recipe'),
     path('<int:recipe_id>/edit/', views.edit_recipe, name='edit_recipe'),
     path('<int:recipe_id>/delete/', views.delete_recipe, name='delete_recipe'),
+    path('shopping_cart/', views.shopping_cart, name='shopping_cart'),
     path('purchases/', views.ShoppingCartView.as_view()),
     path('purchases/<int:followed_id>/', views.ShoppingCartView.as_view()),
     path('subscriptions/', FollowUserView.as_view()),

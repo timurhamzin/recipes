@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="en">
+{% load static %}
+{% load define %}
+{% load user_follows %}
 <head>
-    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
@@ -26,81 +28,56 @@
                 {% endfor %}
             </ul>
         </div>
+        {% if by_author != None %}
+            {% user_follows request.user as follows %}
+            {% if by_author in follows %}
+                {% define "Отписаться от автора" as subscribe_text %}
+                {% define "" as subscribe_data_out %}
+            {% else %}
+                {% define "Подписаться на автора" as subscribe_text %}
+                {% define "data-out" as subscribe_data_out %}
+            {% endif %}
+            <div class="author-subscribe" data-author="{{ by_author }}">
+                <p style="padding: 0 0 2em 0;">
+                    <button class="button button_style_light-blue button_size_subscribe"
+                            name="subscribe" {{ subscribe_data_out }}>{{ subscribe_text }}
+                    </button>
+                </p>
+            </div>
+        {% else %}
+            {% define "" as subscribe_load_js %}
+        {% endif %}
         <div class="card-list">
             {% for recipe in page %}
                 {% include "recipe_card.html" with recipe=recipe %}
             {% endfor %}
         </div>
 
-        <nav class="pagination" aria-label="Search results pages">
-            <ul class="pagination__container">
-                {% if page.number|add:'-2' > 0 %}
-                    <li class="pagination__item">
-                        <a class="pagination__link link"
-                           href="{{ request.path }}?{% set_page 1 request.GET.urlencode %}">1
-                        </a>
-                    </li>
-                {% endif %}
-                {% if page.number|add:'-3' > 0 %}
-                    <li class="pagination__item">
-                        <a class="pagination__link link"
-                           href="{{ request.path }}?{% set_page page.number request.GET.urlencode -2 %}">...
-                        </a>
-                    </li>
-                {% endif %}
-
-                {% for i in page.paginator.page_range %}
-                    {% if page.number == i %}
-                        <li class="pagination__item pagination__item_active">
-                            <a class="pagination__link link" href="#">{{ i }}</a>
-                        </li>
-                    {% elif i > page.number|add:'-2' and i < page.number|add:'2' %}
-                        <li class="pagination__item">
-                            <a class="pagination__link link"
-                               href="{{ request.path }}?{% set_page i request.GET.urlencode %}">{{ i }}
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page.paginator.num_pages > page.number|add:'2' %}
-                    <li class="pagination__item">
-                        <a class="pagination__link link"
-                           href="{{ request.path }}?{% set_page page.number request.GET.urlencode 2 %}">...
-                        </a>
-                    </li>
-                {% endif %}
-                {% if page.paginator.num_pages > page.number|add:'1' %}
-                    <li class="pagination__item">
-                        <a class="pagination__link link"
-                           href="{{ request.path }}?{% set_page page.paginator.num_pages request.GET.urlencode %}">
-                            {{ page.paginator.num_pages }}
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
+        {% include "pagination.html" with page=page paginator=paginator  %}
 
     </main>
-    <footer class="footer">
-        <div class="footer__container container">
-            <a href="#" class="footer__brand link">Продуктовый помощник</a>
-            <ul class="footer__items">
-                <li class="footer__item"><a href="#" class="footer__link link">Об авторе </a></li>
-                <li class="footer__item"><a href="#" class="footer__link link">Технологии</a></li>
-            </ul>
-        </div>
-    </footer>
+    {% include "footer.html" %}
   <script src="{% static './js/components/MainCards.js' %}"></script>
 
   <script src="{% static './js/components/Purchases.js' %}"></script>
   <script src="{% static './js/components/Favorites.js' %}"></script>
+  {% if by_author != None %}
+      <script src="{% static './js/components/Subscribe.js' %}"></script>
+  {% endif %}
 
   <script src="{% static './js/config/config.js' %}"></script>
-  <script src="{% static './js/components/CardList.js' %}"></script>
+  {% if by_author != None %}
+      <script src="{% static './js/components/AuthorRecipe.js' %}"></script>
+  {% else %}
+      <script src="{% static './js/components/CardList.js' %}"></script>
+  {% endif %}
   <script src="{% static './js/components/Header.js' %}"></script>
 
   <script src="{% static './js/api/Api.js' %}"></script>
-  <script src="{% static 'indexAuth.js' %}"></script>
+  {% if by_author != None %}
+      <script src="{% static 'authorRecipe.js' %}"></script>
+  {% else %}
+      <script src="{% static 'indexAuth.js' %}"></script>
+  {% endif %}
 </body>
 </html>

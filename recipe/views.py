@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Model, Q, Prefetch
 from django.forms import modelform_factory, ModelForm
-from django.http import HttpResponseForbidden, Http404
+from django.http import HttpResponseForbidden, Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.urls import reverse
@@ -21,6 +21,7 @@ from django.core.files.storage import default_storage
 from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
     Ingridient, ShoppingCart, FollowUser
+from recipe.views_helpers.shopping_cart import serve_shopping_list
 
 User = get_user_model()
 
@@ -82,7 +83,8 @@ def index(request, only_favorite=False, by_author=None):
             'shopping_cart': {},
             'purchased': purchased_recipes,
             'favorites': followed,
-            'page_title': title
+            'page_title': title,
+            'by_author': by_author,
         },
     )
 
@@ -109,7 +111,23 @@ def my_followed(request):
     )
 
 
-#TODO check with Figma
+@login_required
+def shopping_cart(request):
+    user = request.user
+    download = request.GET.get('download')
+    if download:
+        return serve_shopping_list(request)
+    else:
+        recipe_ids = list(user.purchased.values_list('recipe', flat=True))
+        recipes = Recipe.objects.filter(id__in=recipe_ids).all()
+        return render(
+            request, 'shopList.html',
+            {
+                'recipes': recipes
+            },
+        )
+
+
 def author(request, author_id):
     return index(request, by_author=author_id)
 
@@ -214,7 +232,6 @@ class ShoppingCartView(FollowThrough):
     _through_class = ShoppingCart
 
 
-# def edit_recipe(request, recipe_id, redirect_to=''):
 @login_required
 def edit_recipe(request, recipe_id):
     if recipe_id is not None:
@@ -233,19 +250,12 @@ def edit_recipe(request, recipe_id):
             editor.update_recipe_image()
             editor.create_recipe_tags()
             editor.create_recipe_ingredients()
-        # if redirect_to:
-        #     return redirect(redirect_to)
-        # else:
         return redirect(
             reverse('single_page', kwargs=dict(recipe_id=recipe.id)))
 
 
 @login_required
 def create_recipe(request):
-    # created = Recipe(author=request.user)
-    # edit_url = reverse('single_page', kwargs=dict(recipe_id=created.id))
-    # return edit_recipe(request, created.id, redirect_to=edit_url)
-    # return edit_recipe(request, created.id)
     return edit_recipe(request, None)
 
 
