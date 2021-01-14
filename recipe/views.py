@@ -5,8 +5,9 @@ from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.core.validators import validate_email
 from django.db.models import Model, Q, Prefetch
 from django.forms import modelform_factory, ModelForm
 from django.http import HttpResponseForbidden, Http404, HttpResponse
@@ -19,7 +20,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 
-from recipe.forms import RecipeForm
+from recipe.forms import RecipeForm, SignUpForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
     Ingridient, ShoppingCart, FollowUser
 from recipe.views_helpers.shopping_cart import serve_shopping_list
@@ -372,7 +373,6 @@ def edit_model_form(request, recipe_id):
         if form.is_valid():
             obj = form.save(
                 commit=False)  # does nothing, just trigger the validation
-            print(obj)
             for ingredient in obj.ingridients.all():
                 ingredient.amount = 1
     else:
@@ -382,7 +382,7 @@ def edit_model_form(request, recipe_id):
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = SignUpForm(data=request.POST)
         if form.is_valid():
             form.save()
             username = form.cleaned_data.get('username')
@@ -392,4 +392,4 @@ def register(request):
             return redirect(reverse('index'))
     else:
         form = UserCreationForm()
-    return render(request, 'reg.html', {'form': form})
+    return render(request, 'reg.html', {'form': form, 'errors': form.errors})

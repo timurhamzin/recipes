@@ -158,3 +158,5 @@ LOGGING = {
         }
     },
 }
+
+AUTHENTICATION_BACKENDS = ['recipes.authentication.EmailBackend']

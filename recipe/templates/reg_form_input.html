@@ -1,0 +1,12 @@
+            <div class="form__group">
+                <label for="{{ id }}" class="form__label">{{ text }}</label>
+                <div class="form__field-group">
+                    {% dict_get form.data name as value %}
+                    <input type="{{ type }}" name="{{ name }}" id="{{ id }}" class="form__input" value="{{ value }}">
+                    {% dict_get form.errors name as err %}
+                    {% join_strings err ", " as err %}
+                    {% if err %}
+                        <span class="form__error">{{ err }}</span>
+                    {% endif %}
+                </div>
+            </div>

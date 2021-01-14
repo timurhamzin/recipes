@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 {% load static %}
+{% load dict_get %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -18,35 +19,11 @@
     <div class="form-container">
         <form class="form" method="POST">
             {% csrf_token %}
-            <div class="form__group">
-                <label for="id_first_name" class="form__label">Имя</label>
-                <div class="form__field-group">
-                    <input type="text" name="first_name" id="id_first_name" class="form__input">
-                    <span class="form__error"></span>
-                </div>
-            </div>
-            <div class="form__group">
-                <label for="id_username" class="form__label">Имя пользователя</label>
-                <div class="form__field-group">
-                    <input type="text" name="username" id="id_username" class="form__input">
-                    <span class="form__error">Имя пользователя и пароль не совпадают. Введите правильные данные.
-                    </span>
-                </div>
-            </div>
-            <div class="form__group">
-                <label for="id_email" class="form__label">Адрес электронной почты</label>
-                <div class="form__field-group">
-                    <input type="email" name="email" id="id_email" class="form__input">
-                    <span class="form__error"></span>
-                </div>
-            </div>
-            <div class="form__group">
-                <label for="id_password" class="form__label">Пароль</label>
-                <div class="form__field-group">
-                    <input type="password" name="password" id="id_password" class="form__input">
-                    <span class="form__error"></span>
-                </div>
-            </div>
+            {% include "reg_form_input.html" with id="id_first_name" text="Имя" type="text" name="first_name"  %}
+            {% include "reg_form_input.html" with id="id_username" text="Имя пользователя" type="text" name="username"  %}
+            {% include "reg_form_input.html" with id="id_email" text="Адрес электронной почты" type="email" name="email"  %}
+            {% include "reg_form_input.html" with id="id_password1" text="Пароль" type="password" name="password1"  %}
+            {% include "reg_form_input.html" with id="id_password2" text="Пароль (повторно)" type="password" name="password2"  %}
             <div class="form__footer">
                 <button class="button button_style_blue">Создать аккаунт</button>
             </div>
