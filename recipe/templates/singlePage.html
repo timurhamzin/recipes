@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="en">
+{% load static %}
+{% load user_title %}
 <head>
-    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
@@ -41,7 +42,7 @@
                     <p class="single-card__text"><span class="icon-time"></span> {{ recipe.cooking_time }} мин.</p>
                     <ul class="single-card__items">
                         <li class="single-card__item"><p class="single-card__text"><span class="icon-user"></span>
-                            <a href="{% url 'author' recipe.author.id %}">{{ recipe.author }}</a></p></li>
+                            <a href="{% url 'author' recipe.author.id %}">{{ recipe.author|user_title }}</a></p></li>
                         {% if request.user == recipe.author  %}
                             <li class="single-card__item"><a style="margin-left: 2.5em" href="{% url 'edit_recipe' recipe.id %}" class="single-card__text">Редактировать рецепт</a></li>
                         {% endif  %}

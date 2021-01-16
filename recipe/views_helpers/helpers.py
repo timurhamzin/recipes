@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch
 from django.http import HttpResponse
 
 from recipe.models import Recipe

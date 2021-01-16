@@ -1,4 +1,5 @@
 {% load static %}
+{% load user_title %}
 <div class="card" data-id="{{ recipe.id }}">
     <a href="{% url 'single_page' recipe_id=recipe.id %}" class="link" target="_blank">
         <img src="{{ recipe.image_url }}" alt="{{ recipe.title }}" class="card__image">
@@ -12,32 +13,33 @@
         </ul>
         <div class="card__items card__items_column">
             <p class="card__text"><span class="icon-time"></span> {{ recipe.cooking_time }} мин.</p>
-            <p class="card__text"><span class="icon-user"></span> <a href="{% url 'author' recipe.author.id %}" style="color: black">{{ recipe.author }}</a></p>
+            <p class="card__text"><span class="icon-user"></span> <a href="{% url 'author' recipe.author.id %}" style="color: black">{{ recipe.author|user_title }}</a></p>
         </div>
     </div>
-    <div class="card__footer">
-        {% if recipe.id in purchased %}
-            {% define "button_style_light-blue-outline" as to_cart_button_class %}
-            {% define "icon-check" as to_cart_text_class %}
-            {% define "" as to_cart_data_out %}
-            {% define " Рецепт добавлен" as to_cart_text %}
-        {% else %}
-            {% define "button_style_light-blue" as to_cart_button_class %}
-            {% define "icon-plus" as to_cart_text_class %}
-            {% define "data-out" as to_cart_data_out %}
-            {% define "Добавить в покупки" as to_cart_text %}
-        {% endif %}
-        <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
-        <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
-        {% if recipe.id in favorites %}
-            {% define "" as favorite_data_out %}
-            {% define "icon-favorite_active" as favorite_active_class %}
-        {% else %}
-            {% define "data-out" as favorite_data_out %}
-            {% define "" as favorite_active_class %}
-        {% endif %}
-        <button class="button button_style_none" name="favorites" {{ favorite_data_out }}>
-            <span class="icon-favorite icon-favorite_big {{ favorite_active_class }}"></span></button>
-<!--        <div class="single-card__favorite-tooltip tooltip">Добавить в избранное</div>-->
-    </div>
+    {% if request.user.is_authenticated %}
+        <div class="card__footer">
+            {% if recipe.id in purchased %}
+                {% define "button_style_light-blue-outline" as to_cart_button_class %}
+                {% define "icon-check" as to_cart_text_class %}
+                {% define "" as to_cart_data_out %}
+                {% define " Рецепт добавлен" as to_cart_text %}
+            {% else %}
+                {% define "button_style_light-blue" as to_cart_button_class %}
+                {% define "icon-plus" as to_cart_text_class %}
+                {% define "data-out" as to_cart_data_out %}
+                {% define "Добавить в покупки" as to_cart_text %}
+            {% endif %}
+            <button class="button {{ to_cart_button_class }}" name="purchases" {{ to_cart_data_out }}>
+            <span class="{{ to_cart_text_class }} button__icon"></span>{{ to_cart_text }}</button>
+            {% if recipe.id in favorites %}
+                {% define "" as favorite_data_out %}
+                {% define "icon-favorite_active" as favorite_active_class %}
+            {% else %}
+                {% define "data-out" as favorite_data_out %}
+                {% define "" as favorite_active_class %}
+            {% endif %}
+            <button class="button button_style_none" name="favorites" {{ favorite_data_out }}>
+                <span class="icon-favorite icon-favorite_big {{ favorite_active_class }}"></span></button>
+        </div>
+    {% endif %}
 </div>

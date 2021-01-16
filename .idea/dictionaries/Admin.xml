@@ -2,6 +2,7 @@
   <dictionary name="Admin">
     <words>
       <w>recipeingridient</w>
+      <w>signout</w>
     </words>
   </dictionary>
 </component>

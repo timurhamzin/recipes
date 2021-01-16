@@ -1,12 +1,23 @@
 from django.contrib import admin
 from django.apps import apps
-from django.contrib.admin.sites import AlreadyRegistered
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 
-from recipe.models import RecipeIngridient, Recipe
+from recipe.models import RecipeIngridient, Recipe, Ingridient
+
+User = get_user_model()
 
 
 class RecipeIngridientInline(admin.StackedInline):
     model = RecipeIngridient
+
+
+class MyUserAdmin(UserAdmin):
+    list_filter = UserAdmin.list_filter + ('email', 'username',)
+
+
+class IngredientAdmin(admin.ModelAdmin):
+    list_filter = ('title',)
 
 
 class RecipeAdmin(admin.ModelAdmin):
@@ -17,17 +28,6 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    # fieldsets = (
-    #     (None, {
-    #         'fields': ('author', 'title', 'image', 'description',
-    #                    'tags', 'cooking_time')
-    #     }),
-    #     ('Advanced options', {
-    #         'classes': ('collapse',),
-    #         'fields': [],
-    #     }),
-    # )
 
 
 # automatically register classes
@@ -47,9 +47,8 @@ def register_models():
             pass
 
 
+admin.site.unregister(User)
+admin.site.register(User, MyUserAdmin)
+admin.site.register(Recipe, RecipeAdmin)
+admin.site.register(Ingridient, IngredientAdmin)
 register_models()
-try:
-    admin.site.register(Recipe, RecipeAdmin)
-except AlreadyRegistered:
-    admin.site.unregister(Recipe)
-    admin.site.register(Recipe, RecipeAdmin)

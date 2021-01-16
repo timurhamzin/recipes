@@ -4,6 +4,7 @@
 {% load top_n %}
 {% load define %}
 {% load subtract %}
+{% load user_title %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -22,7 +23,7 @@
         {% for author in authors %}
             <div class="card-user" data-author="{{ author.id }}">
                 <div class="card-user__header">
-                    <h2 class="card-user__title"><a href="/author/{{ author.id }}/">{{ author }}</a></h2>
+                    <h2 class="card-user__title"><a href="/author/{{ author.id }}/">{{ author|user_title }}</a></h2>
                 </div>
                 <div class="card-user__body">
                     <ul class="card-user__items">

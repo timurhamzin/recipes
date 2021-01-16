@@ -14,8 +14,8 @@
                       <span class="badge badge_style_blue nav__badge" id="counter">{% purchased_num request %}</span></li>
               </ul>
               <ul class="nav__items list">
-                  <li class="nav__item"><a href="#" class="nav__link link">Изменить пароль</a></li>
-                  <li class="nav__item"><a href="#" class="nav__link link">Выход</a></li>
+                  <li class="nav__item"><a href="{% url 'password_change' %}" class="nav__link link">Изменить пароль</a></li>
+                  <li class="nav__item"><a href="{% url 'signout' %}" class="nav__link link">Выход</a></li>
               </ul>
             </div>
         {% else %}
@@ -26,7 +26,7 @@
                             {% nav_item_li request "/" "Рецепты" add_class="nav__item_disabled" %}
                         </ul>
                         <ul class="nav__items list">
-                            <li class="nav__item"><a href="{% static '#' %}" class="nav__link link">Войти</a></li>
+                            <li class="nav__item"><a href="{% url 'auth' %}" class="nav__link link">Войти</a></li>
                             <li class="nav__item"><a href="{% url 'register' %}" class="button button_style_blue">Создать аккаунт</a></li>
                         </ul>
                     </div>

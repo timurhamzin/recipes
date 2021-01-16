@@ -1,34 +1,29 @@
 import json
 from typing import Type
 
-from django.contrib.auth import get_user_model, authenticate, login
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.core.validators import validate_email
 from django.db.models import Model, Q, Prefetch
 from django.forms import modelform_factory, ModelForm
-from django.http import HttpResponseForbidden, Http404, HttpResponse
+from django.http import HttpResponseForbidden, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.urls import reverse
-
-from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 
-from recipe.forms import RecipeForm, SignUpForm
+from recipe.forms import RecipeForm
 from recipe.models import Recipe, Tag, RecipeIngridient, FollowRecipe, \
     Ingridient, ShoppingCart, FollowUser
-from recipe.views_helpers.shopping_cart import serve_shopping_list
+from recipe.templatetags.user_title import user_title
+from recipe.views_helpers.helpers import serve_shopping_list
 
 User = get_user_model()
 
-CARDS_PER_PAGE = 2
-FOLLOWED_PER_PAGE = 2
+CARDS_PER_PAGE = 6
+FOLLOWED_PER_PAGE = 6
 DEFAULT_TAG_VALUE = 1
 
 
@@ -58,15 +53,16 @@ def index(request, only_favorite=False, by_author=None):
         if only_favorite:
             title = f'Избранные рецепты'
             recipes = recipes.filter(id__in=followed)
-        if by_author is not None:
-            author = get_object_or_404(User, id=by_author)
-            title = f'{author}'
-            recipes = recipes.filter(author=by_author)
     else:
         followed = None
         purchased_recipes = None
 
-    recipes = recipes.distinct()
+    if by_author is not None:
+        selected_author = get_object_or_404(User, id=by_author)
+        title = user_title(selected_author)
+        recipes = recipes.filter(author=by_author)
+
+    recipes = recipes.order_by('-pub_date').distinct()
 
     # set pages
     paginator = Paginator(recipes, CARDS_PER_PAGE)
@@ -158,7 +154,6 @@ class FollowThrough(View, LoginRequiredMixin):
     _through_class = None
     _follow_counter_field_name = ''
 
-    # @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
@@ -365,31 +360,16 @@ class RecipeEditor(object):
 
 # TODO
 # remove this view, it's for testing purposes only
-@login_required
-def edit_model_form(request, recipe_id):
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    if request.method == 'POST':
-        form = RecipeForm(request.POST, instance=recipe)
-        if form.is_valid():
-            obj = form.save(
-                commit=False)  # does nothing, just trigger the validation
-            for ingredient in obj.ingridients.all():
-                ingredient.amount = 1
-    else:
-        form = RecipeForm(instance=recipe)
-    return render(request, 'recipeEditModelForm.html', {'form': form})
-
-
-def register(request):
-    if request.method == 'POST':
-        form = SignUpForm(data=request.POST)
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            user = authenticate(username=username, password=raw_password)
-            login(request, user)
-            return redirect(reverse('index'))
-    else:
-        form = UserCreationForm()
-    return render(request, 'reg.html', {'form': form, 'errors': form.errors})
+# @login_required
+# def edit_model_form(request, recipe_id):
+#     recipe = get_object_or_404(Recipe, id=recipe_id)
+#     if request.method == 'POST':
+#         form = RecipeForm(request.POST, instance=recipe)
+#         if form.is_valid():
+#             obj = form.save(
+#                 commit=False)  # does nothing, just trigger the validation
+#             for ingredient in obj.ingridients.all():
+#                 ingredient.amount = 1
+#     else:
+#         form = RecipeForm(instance=recipe)
+#     return render(request, 'recipeEditModelForm.html', {'form': form})

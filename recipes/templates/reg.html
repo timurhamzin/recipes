@@ -19,11 +19,11 @@
     <div class="form-container">
         <form class="form" method="POST">
             {% csrf_token %}
-            {% include "reg_form_input.html" with id="id_first_name" text="Имя" type="text" name="first_name"  %}
-            {% include "reg_form_input.html" with id="id_username" text="Имя пользователя" type="text" name="username"  %}
-            {% include "reg_form_input.html" with id="id_email" text="Адрес электронной почты" type="email" name="email"  %}
-            {% include "reg_form_input.html" with id="id_password1" text="Пароль" type="password" name="password1"  %}
-            {% include "reg_form_input.html" with id="id_password2" text="Пароль (повторно)" type="password" name="password2"  %}
+            {% include "reg_or_auth_form_input.html" with id="id_first_name" text="Имя" type="text" name="first_name"  %}
+            {% include "reg_or_auth_form_input.html" with id="id_username" text="Имя пользователя" type="text" name="username"  %}
+            {% include "reg_or_auth_form_input.html" with id="id_email" text="Адрес электронной почты" type="email" name="email"  %}
+            {% include "reg_or_auth_form_input.html" with id="id_password1" text="Пароль" type="password" name="password1"  %}
+            {% include "reg_or_auth_form_input.html" with id="id_password2" text="Пароль (повторно)" type="password" name="password2"  %}
             <div class="form__footer">
                 <button class="button button_style_blue">Создать аккаунт</button>
             </div>

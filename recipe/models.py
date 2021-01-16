@@ -24,7 +24,7 @@ class Recipe(models.Model):
     ingridients = models.ManyToManyField(
         'Ingridient', through='RecipeIngridient', related_name='recipes')
     tag = models.ManyToManyField('Tag', blank=False)
-    cooking_time = models.IntegerField(null=False, blank=True, default=0)
+    cooking_time = models.PositiveSmallIntegerField(null=False, blank=True, default=0)
     pub_date = models.DateTimeField('date published', auto_now_add=True)
     purchased_by = models.ManyToManyField(
         User, blank=True, related_name='purchased_recipes',
@@ -50,9 +50,11 @@ class Recipe(models.Model):
 
 
 class Ingridient(models.Model):
-    title = models.CharField(max_length=200, verbose_name='Название')
-    measurement_unit = models.CharField(max_length=20,
-                                        verbose_name='Единица измерения')
+    title = models.CharField(
+        max_length=200, verbose_name='Название', null=False, blank=False)
+    measurement_unit = models.CharField(
+        max_length=20, verbose_name='Единица измерения', null=False, blank=False
+    )
     part = models.ManyToManyField(Recipe, through='RecipeIngridient')
 
     def __str__(self):
